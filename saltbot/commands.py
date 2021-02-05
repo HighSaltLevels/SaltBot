@@ -3,8 +3,6 @@
 from copy import deepcopy
 import json
 from random import randint
-import time
-import uuid
 
 import discord
 import requests
@@ -12,6 +10,7 @@ import requests
 from api import APIError
 from giphy import Giphy
 from poll import POLL_DIR
+from timelength import TimeLength
 from version import VERSION
 from youtube import Youtube
 
@@ -37,14 +36,6 @@ MSG_DICT = {
     "!youtube (!y)": "Get a youtube search result. Use the '-i' parameter to specify an index",
 }
 
-POLL_HELP_MSG = (
-    "```How to set a poll:\nType the !poll command followed by the question, the "
-    "answers, and the time all separated by semicolons. For Example:\n\n "
-    "!poll How many times do you poop daily? ; Less than once ; Once ; Twice ; "
-    "More than twice ; ends in 4 hours\n\nThe final poll expiry has to be in "
-    'the format "ends in X Y" where "X" is any positive integer and "Y" '
-    "is one of (hours, hour, minutes, minute, seconds, second)```"
-)
 
 UNIT_DICT = {
     "hours": 3600,
@@ -141,7 +132,7 @@ class Command:
 
     def help(self):
         """
-            Return a help message that gives a list of commands
+        Return a help message that gives a list of commands
         """
         ret_msg = (
             f"```Good salty day to you {self._user}! Here's a list of commands "
@@ -162,7 +153,7 @@ class Command:
 
     def vote(self, *args):
         """
-            Cast a vote on an existing poll
+        Cast a vote on an existing poll
         """
         cmd_args = list(args)
         try:
@@ -198,7 +189,7 @@ class Command:
 
     def poll(self, *args):
         """
-            Start a poll
+        Start a poll
         """
         poll_data = {}
         if len(args) == 0:
@@ -218,27 +209,41 @@ class Command:
                 if "ends in" in poll_data["choices"][-1].lower()
                 else "ends in 1 hour"
             )
-            poll_data["expiry"] = parse_expiry(expiry_str)
+
         except (KeyError, IndexError, ValueError):
             return "text", POLL_HELP_MSG
 
-        poll_data["poll_id"] = str(uuid.uuid4()).split("-")[0]
+        words = expiry_str.split(" ")
+        amount_of_time = words[2]
+        unit = words[3]
+
+        try:
+            time_length = TimeLength(unit, amount_of_time)
+        except ValueError:
+            return "text", POLL_HELP_MSG
+
+        poll_data["poll_id"] = time_length.unique_id
         poll_data["votes"] = {idx: [] for idx in range(len(poll_data["choices"]))}
         poll_data["channel_id"] = self._channel.id
+        poll_data["expiry"] = time_length.timeout
 
         write_poll(**poll_data)
 
         return_str = f"```{poll_data['prompt']} ({expiry_str})\n\n"
         for choice_num in range(len(poll_data["choices"])):
             return_str += f"{choice_num+1}.\t{poll_data['choices'][choice_num]}\n"
-        return_str += f'\n\nType or DM me "!vote {poll_data["poll_id"]} <choice number>" to vote```'
+
+        return_str += (
+            f'\n\nType or DM me "!vote {time_length.unique_id} '
+            '<choice number>" to vote```'
+        )
 
         return "text", return_str
 
     @staticmethod
     def jeopardy():
         """
-            Return a 5 jeopardy questions and answers
+        Return a 5 jeopardy questions and answers
         """
         # Get a random set of questions
         rand = randint(0, 18417)
@@ -263,7 +268,7 @@ class Command:
 
     def whisper(self):
         """
-            Return a hello message as a DM to the person who requested
+        Return a hello message as a DM to the person who requested
         """
         return (
             "user",
@@ -276,7 +281,7 @@ class Command:
     #  pylint: disable=too-many-return-statements
     def gif(self, *args):
         """
-            Use the giphy api to query and return one or all gif
+        Use the giphy api to query and return one or all gif
         """
         # Convert from tuple to list so we can modify
         args = list(args)
@@ -310,7 +315,7 @@ class Command:
     @staticmethod
     def youtube(*args):
         """
-            Use the Youtube API to return a youtube video
+        Use the Youtube API to return a youtube video
         """
         # Convert from tuple to list so we can modify
         try:

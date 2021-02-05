@@ -25,8 +25,9 @@ async def on_message(msg):
                 f"```Hello. I'm sorry I don't understand {cmd}. Please type "
                 '"!help" to see a list of available commands\n```'
             )
+            return
 
-        else:
+        try:
             type_, resp = bot_cmd.commands[cmd](*args)
             LOGGER.log_sent(msg.author, msg.channel, cmd)
 
@@ -39,9 +40,10 @@ async def on_message(msg):
                     await msg.channel.send(item)
             elif type_ == "user":
                 await msg.author.send(resp)
-            else:
-                err_msg = "```Unexpected error :(```"
-                await msg.channel.send(err_msg)
+
+        except Exception:  #  pylint: disable=broad-except
+            traceback.print_exc()
+            await msg.channel.send("```Unexpected error :(```")
 
 
 @CLIENT.event

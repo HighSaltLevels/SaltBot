@@ -10,6 +10,7 @@ import requests
 from api import APIError
 from giphy import Giphy
 from poll import Poll, POLL_HELP_MSG
+from reminder import Reminder, ReminderError, REMINDER_HELP_MSG
 from timelength import TimeLength
 from version import VERSION
 from youtube import Youtube
@@ -34,6 +35,7 @@ MSG_DICT = {
     "!poll (!p)": 'Type "!poll help" for detailed information',
     "!vote (!v)": 'Vote in a poll. Type "!vote <poll id> <poll choice>" to cast your vote',
     "!youtube (!y)": "Get a youtube search result. Use the '-i' parameter to specify an index",
+    "!remind (!r)": 'Set a reminder. Type "remind help" for detailed information',
 }
 
 
@@ -92,6 +94,8 @@ class Command:
             "!p": self.poll,
             "!youtube": self.youtube,
             "!y": self.youtube,
+            "!remind": self.remind,
+            "r": self.remind,
         }
 
     def help(self):
@@ -114,6 +118,20 @@ class Command:
         )
 
         return "text", ret_msg
+
+    def remind(self, *args):
+        """
+        Set a reminder
+        """
+        if len(args) == 0 or args[0] == "help":
+            return "text", REMINDER_HELP_MSG
+
+        try:
+            reminder = Reminder(self._full_user, *args)
+            return "text", reminder.execute()
+
+        except ReminderError as error:
+            return "text", str(error)
 
     def vote(self, *args):
         """

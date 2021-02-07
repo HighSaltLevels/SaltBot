@@ -9,7 +9,7 @@ import requests
 
 from api import APIError
 from giphy import Giphy
-from poll import POLL_DIR
+from poll import Poll, POLL_HELP_MSG
 from timelength import TimeLength
 from version import VERSION
 from youtube import Youtube
@@ -35,42 +35,6 @@ MSG_DICT = {
     "!vote (!v)": 'Vote in a poll. Type "!vote <poll id> <poll choice>" to cast your vote',
     "!youtube (!y)": "Get a youtube search result. Use the '-i' parameter to specify an index",
 }
-
-
-UNIT_DICT = {
-    "hours": 3600,
-    "hour": 3600,
-    "minutes": 60,
-    "minute": 60,
-    "seconds": 1,
-    "second": 1,
-}
-
-
-def parse_expiry(expiry_str):
-    """
-        Take "ends in X Y" and turn it into a integer time in seconds
-        For example:
-            ends in 62 minutes -> time.time() + 3720
-    """
-    words = expiry_str.split(" ")
-    unit = words.pop(-1).lower()
-    amount = words.pop(-1).lower()
-    return int(time.time()) + int(amount) * UNIT_DICT[unit]
-
-
-def write_poll(**kwargs):
-    """ Write the poll to disk as a json file """
-    data = {
-        "prompt": kwargs["prompt"],
-        "choices": kwargs["choices"],
-        "expiry": kwargs["expiry"],
-        "poll_id": kwargs["poll_id"],
-        "channel_id": kwargs["channel_id"],
-        "votes": kwargs["votes"],
-    }
-    with open(f"{POLL_DIR}/{kwargs['poll_id']}.json", "w") as stream:
-        stream.write(json.dumps(data))
 
 
 def _get_idx_from_args(args):
@@ -166,47 +130,45 @@ class Command:
             )
 
         try:
-            with open(f"{POLL_DIR}/{poll_id}.json", "r") as stream:
-                poll_data = json.loads(stream.read())
+            poll = Poll()
+            poll.load(poll_id)
         except FileNotFoundError:
             return "text", f"```Poll {poll_id} does not exist or has expired```"
+        except ValueError as error:
+            return "text", str(error)
 
-        choice_len = len(poll_data["choices"])
+        choice_len = len(poll.choices)
 
         if choice not in range(1, choice_len + 1):
             response = f"```{choice} is not an available selection from:\n\n"
             for choice_num in range(choice_len):
-                response += f"{choice_num+1}.\t{poll_data['choices'][choice_num]}\n"
+                response += f"{choice_num+1}.\t{poll.choices[choice_num]}\n"
             return "text", f"{response}```"
 
-        for option, takers in poll_data["votes"].items():
+        for option, takers in poll.votes.items():
             if self._full_user in takers:
-                poll_data["votes"][option].remove(self._full_user)
+                poll.votes[option].remove(self._full_user)
 
-        poll_data["votes"][str(choice - 1)].append(self._full_user)
-        write_poll(**poll_data)
-        return "text", f"```You have selected {poll_data['choices'][choice-1]}```"
+        poll.votes[str(choice - 1)].append(self._full_user)
+        poll.save()
+        return "text", f"```You have selected {poll.choices[choice-1]}```"
 
     def poll(self, *args):
         """
         Start a poll
         """
-        poll_data = {}
         if len(args) == 0:
             return "text", POLL_HELP_MSG
 
         if args[0] == "help":
             return "text", POLL_HELP_MSG
 
-        poll_data["choices"] = [
-            phrase.strip() for phrase in self._user_msg.content.split(";")
-        ]
-        poll_data["prompt"] = poll_data["choices"].pop(0)
+        choices = [phrase.strip() for phrase in self._user_msg.content.split(";")]
 
         try:
             expiry_str = (
-                poll_data["choices"].pop(-1)
-                if "ends in" in poll_data["choices"][-1].lower()
+                choices.pop(-1)
+                if "ends in" in choices[-1].lower()
                 else "ends in 1 hour"
             )
 
@@ -214,28 +176,25 @@ class Command:
             return "text", POLL_HELP_MSG
 
         words = expiry_str.split(" ")
-        amount_of_time = words[2]
-        unit = words[3]
 
         try:
-            time_length = TimeLength(unit, amount_of_time)
+            poll = Poll(time_length=TimeLength(unit=words[3], amount_of_time=words[2]))
         except ValueError:
             return "text", POLL_HELP_MSG
 
-        poll_data["poll_id"] = time_length.unique_id
-        poll_data["votes"] = {idx: [] for idx in range(len(poll_data["choices"]))}
-        poll_data["channel_id"] = self._channel.id
-        poll_data["expiry"] = time_length.timeout
+        poll.prompt = choices.pop(0)
+        poll.choices = choices
+        poll.channel_id = self._channel.id
+        poll.votes = {idx: [] for idx in range(len(poll.choices))}
 
-        write_poll(**poll_data)
+        poll.save()
 
-        return_str = f"```{poll_data['prompt']} ({expiry_str})\n\n"
-        for choice_num in range(len(poll_data["choices"])):
-            return_str += f"{choice_num+1}.\t{poll_data['choices'][choice_num]}\n"
+        return_str = f"```{poll.prompt} ({expiry_str})\n\n"
+        for choice_num in range(len(poll.choices)):
+            return_str += f"{choice_num+1}.\t{poll.choices[choice_num]}\n"
 
         return_str += (
-            f'\n\nType or DM me "!vote {time_length.unique_id} '
-            '<choice number>" to vote```'
+            f'\n\nType or DM me "!vote {poll.poll_id} ' '<choice number>" to vote```'
         )
 
         return "text", return_str

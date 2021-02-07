@@ -1,4 +1,6 @@
 """ Controller module for handling coroutines """
+import traceback
+
 import discord
 
 from commands import Command

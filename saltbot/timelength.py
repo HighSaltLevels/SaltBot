@@ -29,7 +29,7 @@ class TimeLength:
         try:
             multiplier = UNIT_DICT[unit]
         except KeyError as error:
-            raise ValueError from error
+            raise ValueError(f"```Invalid unit {unit}```") from error
 
         self._id = str(uuid.uuid4()).split("-")[0]
         self._timeout = int(time.time()) + int(amount_of_time) * multiplier

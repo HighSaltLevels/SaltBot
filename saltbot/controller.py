@@ -1,9 +1,12 @@
 """ Controller module for handling coroutines """
+import traceback
+
 import discord
 
 from commands import Command
 from logger import Logger
 from poll import monitor_polls
+from reminder import monitor_reminders
 
 LOGGER = Logger()
 CLIENT = discord.Client()
@@ -25,8 +28,9 @@ async def on_message(msg):
                 f"```Hello. I'm sorry I don't understand {cmd}. Please type "
                 '"!help" to see a list of available commands\n```'
             )
+            return
 
-        else:
+        try:
             type_, resp = bot_cmd.commands[cmd](*args)
             LOGGER.log_sent(msg.author, msg.channel, cmd)
 
@@ -39,9 +43,10 @@ async def on_message(msg):
                     await msg.channel.send(item)
             elif type_ == "user":
                 await msg.author.send(resp)
-            else:
-                err_msg = "```Unexpected error :(```"
-                await msg.channel.send(err_msg)
+
+        except Exception:  #  pylint: disable=broad-except
+            traceback.print_exc()
+            await msg.channel.send("```Unexpected error :(```")
 
 
 @CLIENT.event
@@ -51,4 +56,6 @@ async def on_ready():
     LOGGER.log(CLIENT.user.name)
     LOGGER.log(str(CLIENT.user.id))
     await CLIENT.change_presence(activity=discord.Game(name="The Salt Shaker"))
-    CLIENT.loop.create_task(monitor_polls(CLIENT))
+
+    for coroutine in (monitor_polls, monitor_reminders):
+        CLIENT.loop.create_task(coroutine(CLIENT))

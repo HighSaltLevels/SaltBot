@@ -23,20 +23,12 @@ class API:
 
     def _request(self):
         """ Do an HTTP GET on the url """
-        resp = requests.get(self.url)
-        if resp.status_code != HTTPStatus.OK:
-            return None
-
-        return resp
+        return requests.get(self.url)
 
     def validate_status(self):
-        """ Verify a 200 response code """
-        try:
-            self.response.raise_for_status()
-        except requests.HTTPError as error:
-            raise APIError(
-                "```Sorry, I had trouble getting that query :(```"
-            ) from error
+        """ Check if status code was 200 """
+        if self.response.status_code != HTTPStatus.OK:
+            raise APIError("```Sorry, I had trouble getting that query :(```")
 
     @staticmethod
     def validate_idx(idx, max_idx):

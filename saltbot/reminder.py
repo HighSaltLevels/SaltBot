@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 import time
 
+import pytz
+
 from timelength import TimeLength
 
 REMINDER_DIR = os.path.join(str(Path.home()), ".config/saltbot/reminders")
@@ -44,9 +46,12 @@ class ReminderFile(dict):
             self._read()
 
     def __str__(self):
-        formatted_time = datetime.fromtimestamp(self.timeout).strftime(
-            "%b %d, %Y at %I:%M:%S %p"
-        )
+        dt_obj = datetime.fromtimestamp(self.timeout)
+        timezone = pytz.timezone("US/Eastern")
+        timezone.localize(dt_obj)
+
+        formatted_time = dt_obj.strftime("%b %d, %Y at %I:%M:%S %p ET")
+
         return f'{self.unique_id}: "{self.msg}" at {formatted_time}'
 
     @property

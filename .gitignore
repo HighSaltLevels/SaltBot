@@ -1,4 +1,10 @@
+# Files created at runtime
 log.txt
 temp.jpg
+
+# Pycache
 **/__pycache__/**
-auth.env
+
+# Dev Environment directories
+.coverage
+.venv

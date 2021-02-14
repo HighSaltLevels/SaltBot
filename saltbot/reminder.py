@@ -1,11 +1,13 @@
 """
     Reminder class for handing reminders
 """
+import asyncio
 from datetime import datetime
-import glob
 import json
+import glob
 import os
 from pathlib import Path
+import time
 
 from timelength import TimeLength
 
@@ -14,7 +16,7 @@ os.makedirs(REMINDER_DIR, exist_ok=True)
 
 REMINDER_HELP_MSG = (
     '```Set a reminder, show reminders or delete a reminder.\n\nTo set one:\n"!remind set finish '
-    'fixing saltot bugs ends in 4 hours"\n\nTo show all reminders:\n"!remind show"\n\nTo delete:'
+    'fixing saltbot bugs in 4 hours"\n\nTo show all reminders:\n"!remind show"\n\nTo delete:'
     '\n"!remind delete <ID>"\n\nTo delete a reminder, you need to know the ID. The "!remind show "'
     "command lists all your reminders and IDs```"
 )
@@ -35,6 +37,7 @@ class ReminderFile(dict):
         self.msg = kwargs.get("msg")
         self.unique_id = kwargs.get("unique_id")
         self.timeout = kwargs.get("timeout")
+        self._channel = kwargs.get("channel")
         self._path = f"{path}/{self.unique_id}.json"
 
         if os.path.exists(self._path):
@@ -45,6 +48,16 @@ class ReminderFile(dict):
             "%b %d, %Y at %I:%M:%S %p"
         )
         return f'{self.unique_id}: "{self.msg}" at {formatted_time}'
+
+    @property
+    def channel(self):
+        """ Read only property to get the channel ID """
+        return self._channel
+
+    @property
+    def expired(self):
+        """ Property to determine if a reminder has expired """
+        return self.timeout < time.time()
 
     def write(self):
         """ Write a reminder to disk """
@@ -68,6 +81,7 @@ class ReminderFile(dict):
         self.msg = data["msg"]
         self.unique_id = data["unique_id"]
         self.timeout = data["timeout"]
+        self._channel = data["channel"]
 
 
 class ReminderFileHandler:
@@ -95,7 +109,7 @@ class ReminderFileHandler:
         reminders = []
         files = glob.glob(f"{self.path}/*")
         for file_ in files:
-            unique_id = os.path.splitext(file_)[0].split("/")[-1]
+            unique_id = get_id_from_full_path(file_)
             reminders.append(ReminderFile(path=self.path, unique_id=unique_id))
 
         return reminders
@@ -104,11 +118,12 @@ class ReminderFileHandler:
 class Reminder:
     """ Reminder class """
 
-    def __init__(self, user, *args):
+    def __init__(self, user, channel, *args):
         # Convert the tuple to a list
         self._args = list(args)
 
         self._user = user
+        self._channel = channel
         self._cmd = self._args.pop(0)
 
     def execute(self):
@@ -118,13 +133,12 @@ class Reminder:
                 unit = self._args.pop(-1)
                 amount_of_time = self._args.pop(-1)
 
-                # Remove "ends" and "in"
-                for word in ("ends", "in"):
-                    self._args.remove(word)
+                # Remove "in"
+                self._args.remove("in")
 
                 return self.set_reminder(unit, amount_of_time, msg=" ".join(self._args))
 
-            except IndexError as error:
+            except (IndexError, ValueError) as error:
                 raise ReminderError(
                     "```Reninder time must be in format <amount> <unit> (ex 5 minutes)```"
                 ) from error
@@ -151,6 +165,7 @@ class Reminder:
             "msg": msg,
             "unique_id": time_length.unique_id,
             "timeout": time_length.timeout,
+            "channel": self._channel,
         }
 
         handler = ReminderFileHandler(self._user)
@@ -172,3 +187,30 @@ class Reminder:
         reminder.delete()
 
         return f"```Ok. I've deleted:\n{reminder}```"
+
+
+async def monitor_reminders(discord_client):
+    """ Check reminder files for expiry every 5 seconds """
+    while True:
+        for user_path in glob.glob(f"{REMINDER_DIR}/*"):
+            user = user_path.split("/")[-1]
+            handler = ReminderFileHandler(user)
+
+            for reminder_file in glob.glob(f"{user_path}/*"):
+                reminder_id = get_id_from_full_path(reminder_file)
+                reminder = handler.load(reminder_id)
+                if reminder.expired:
+                    channel = discord_client.get_channel(reminder.channel)
+                    await channel.send(f"```Remember:\n{reminder.msg}```")
+                    try:
+                        reminder.delete()
+                    except ReminderError:
+                        # If the reminder somehow gets deleted, ignore it
+                        pass
+
+        await asyncio.sleep(5)
+
+
+def get_id_from_full_path(path):
+    """ Pull the id from the path name """
+    return os.path.splitext(path)[0].split("/")[-1]

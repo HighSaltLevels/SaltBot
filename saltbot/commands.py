@@ -127,7 +127,7 @@ class Command:
             return "text", REMINDER_HELP_MSG
 
         try:
-            reminder = Reminder(self._full_user, *args)
+            reminder = Reminder(self._full_user, self._channel.id, *args)
             return "text", reminder.execute()
 
         except ReminderError as error:

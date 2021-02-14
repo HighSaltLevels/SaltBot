@@ -27,6 +27,7 @@ class API:
 
     def validate_status(self):
         """ Check if status code was 200 """
+        print(self.response.status_code)
         if self.response.status_code != HTTPStatus.OK:
             raise APIError("```Sorry, I had trouble getting that query :(```")
 

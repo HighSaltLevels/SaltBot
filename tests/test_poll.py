@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from poll import Poll, POLL_DIR, POLL_HELP_MSG
+from poll import Poll, POLL_DIR
 from timelength import TimeLength
 
 
@@ -36,7 +36,7 @@ def test_poll_save_load(capsys):
     with pytest.raises(ValueError) as error:
         other_poll.load("1234")
 
-    assert f"Something went wrong with poll 1234" in str(error)
+    assert "Something went wrong with poll 1234" in str(error)
 
     # Test delete
     poll.delete()

@@ -7,11 +7,14 @@ import pytest
 from poll import Poll, POLL_DIR, POLL_HELP_MSG
 from timelength import TimeLength
 
+
 def test_poll_save_load(capsys):
     """ Test saving and loading a poll """
 
     # Test saving a poll
-    poll = Poll(time_length=TimeLength("hours", 5), votes=[], prompt="foo", channel_id=1234)
+    poll = Poll(
+        time_length=TimeLength("hours", 5), votes=[], prompt="foo", channel_id=1234
+    )
 
     poll.save()
     assert os.path.isfile(f"{POLL_DIR}/{poll.poll_id}.json")

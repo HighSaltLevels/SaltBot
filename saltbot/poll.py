@@ -74,7 +74,7 @@ class Poll:
             self.votes = data["votes"]
         except KeyError as error:
             raise ValueError(
-                "```Something went wrong with poll {poll_id}```"
+                f"```Something went wrong with poll {poll_id}```"
             ) from error
 
     def delete(self):
@@ -84,7 +84,7 @@ class Poll:
         try:
             os.remove(f"{POLL_DIR}/{self._poll_id}.json")
         except FileNotFoundError:
-            print("Warning: {self._poll_id} does not exist!")
+            print(f"Warning: {self._poll_id} does not exist!")
 
 
 async def monitor_polls(discord_client):

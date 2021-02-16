@@ -2,8 +2,9 @@
 import os
 from api import API, APIError
 
-YOUTUBE_AUTH = os.environ["YOUTUBE_AUTH"]
+YOUTUBE_AUTH = os.getenv("YOUTUBE_AUTH")
 YOUTUBE_MAX_IDX = 49
+MAX_REQUESTED_VIDS = 50
 BASE_URL = "https://www.youtube.com/watch?v="
 
 
@@ -28,7 +29,7 @@ class Youtube(API):
         query = ",".join(query_args)
         return (
             f"https://www.googleapis.com/youtube/v3/search?key={YOUTUBE_AUTH}"
-            f"&q={query}&maxResults=50&type=video"
+            f"&q={query}&maxResults={MAX_REQUESTED_VIDS}&type=video"
         )
 
     @property

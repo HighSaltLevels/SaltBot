@@ -3,7 +3,7 @@ import os
 
 from api import API, APIError
 
-GIPHY_AUTH = os.environ["GIPHY_AUTH"]
+GIPHY_AUTH = os.getenv("GIPHY_AUTH")
 
 
 class Giphy(API):

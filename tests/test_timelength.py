@@ -6,6 +6,7 @@ import pytest
 
 from timelength import TimeLength, UNIT_DICT
 
+
 def test_timelength():
     """ Test timelength functions work like they should """
     # Test unit in dict
@@ -21,6 +22,7 @@ def test_timelength():
     assert time_length.timeout <= UNIT_DICT["hours"] * 5 + time.time()
 
     assert "Invalid unit foo" in str(error)
+
 
 def test_different_ids():
     """ Test timelengths have different IDs  10 times """

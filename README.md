@@ -37,3 +37,34 @@ Running in a container requires `docker-compose`. You can install and run it lik
 python3 -m pip install --user docker-compose
 docker-compose up
 ```
+
+### Running SaltBot in a Kubernetes Cluster
+
+I published SaltBot on a public docker hub repo at `highsaltlevels/saltbot`. If you would like to deploy this into a kubernetes cluster, you're free to use the namespace and deployment files in the `k8s` folder.
+
+1. Replace the placeholders with actual credentials
+
+```bash
+sed -i s/__BOT_TOKEN__/<YOUR-BOT-TOKEN>/g k8s/deployment.yaml
+sed -i s/__GIPHY_AUTH__/<YOUR-GIPHY-AUTH>/g k8s/deployment.yaml
+sed -i s/__YOUTUBE_AUTH__/<YOUR-YOUTUBE-AUTH>/g k8s/deployment.yaml
+```
+
+2. (Optional) Create a `saltbot` Namespace
+
+```bash
+kubectl create -f k8s/namespace.yaml
+```
+
+3. (Optional) Log into Dockerhub to Avoid Anonymous Pull Rate Limiting
+
+```bash
+docker login -u <username> -p <password>
+kubectl -n saltbot create secret generic regcred --from-file=.dockerconfigjson=/path/to/.docker/config.json --type=kubernetes.io/dockerconfigjson
+```
+
+4. Deploy Saltbot
+
+```bash
+kubectl -n saltbot apply -f k8s/deployment.yaml
+```

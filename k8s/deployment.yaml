@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saltbot
+  labels:
+    app: saltbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: saltbot
+  template:
+    metadata:
+      labels:
+        app: saltbot
+    spec:
+      containers:
+      - name: saltbot
+        image: highsaltlevels/saltbot:latest
+        env:
+        - name: PYTHONUNBUFFERED:
+          value: "0"
+        - name: BOT_TOKEN
+          value: __BOT_TOKEN__
+        - name: GIPHY_AUTH
+          value: __GIPHY_AUTH__
+        - name: YOUTUBE_AUTH
+          value: __YOUTUBE_AUTH__

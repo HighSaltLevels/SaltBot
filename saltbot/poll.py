@@ -84,7 +84,7 @@ class Poll:
         try:
             os.remove(f"{POLL_DIR}/{self._poll_id}.json")
         except FileNotFoundError:
-            print(f"Warning: {self._poll_id} does not exist!")
+            print(f"Warning: {self._poll_id} does not exist!", flush=True)
 
 
 async def monitor_polls(discord_client):

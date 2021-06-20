@@ -55,7 +55,6 @@ def _get_idx_from_args(args):
                 return_args.remove(idx)
 
         try:
-            print(idx)
             return int(idx), return_args
         except ValueError as error:
             raise ValueError(

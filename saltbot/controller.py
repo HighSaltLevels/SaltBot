@@ -1,4 +1,5 @@
 """ Controller module for handling coroutines """
+import uuid
 import traceback
 
 import discord
@@ -43,9 +44,11 @@ async def on_message(msg):
             elif type_ == "user":
                 await msg.author.send(resp)
 
-        except Exception:  #  pylint: disable=broad-except
+        except Exception as error:  #  pylint: disable=broad-except
+            error_msg = f"Unexpected error with id: {uuid.uuid4()}"
+            print(f"{error_msg} {error}")
             traceback.print_exc()
-            await msg.channel.send("```Unexpected error :(```")
+            await msg.channel.send(f"```{error_msg} :(```")
 
 
 @CLIENT.event

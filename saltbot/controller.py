@@ -1,4 +1,5 @@
 """ Controller module for handling coroutines """
+import uuid
 import traceback
 
 import discord
@@ -17,7 +18,7 @@ async def on_message(msg):
     """ Main Message Event Handler """
     # Only do something if command starts with ! or bot is not sending message
     if msg.author != CLIENT.user and msg.content.startswith("!"):
-        LOGGER.log_received(msg.author, msg.channel, msg.content)
+        LOGGER.log(f"Got {msg.content} from {msg.author} in {msg.channel}")
 
         args = msg.content.split(" ")
         cmd = args.pop(0)
@@ -32,7 +33,6 @@ async def on_message(msg):
 
         try:
             type_, resp = bot_cmd.commands[cmd](*args)
-            LOGGER.log_sent(msg.author, msg.channel, cmd)
 
             if type_ == "text":
                 await msg.channel.send(resp)
@@ -44,9 +44,11 @@ async def on_message(msg):
             elif type_ == "user":
                 await msg.author.send(resp)
 
-        except Exception:  #  pylint: disable=broad-except
+        except Exception as error:  #  pylint: disable=broad-except
+            error_msg = f"Unexpected error with id: {uuid.uuid4()}"
+            print(f"{error_msg} {error}")
             traceback.print_exc()
-            await msg.channel.send("```Unexpected error :(```")
+            await msg.channel.send(f"```{error_msg} :(```")
 
 
 @CLIENT.event

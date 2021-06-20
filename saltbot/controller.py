@@ -46,7 +46,7 @@ async def on_message(msg):
 
         except Exception as error:  #  pylint: disable=broad-except
             error_msg = f"Unexpected error with id: {uuid.uuid4()}"
-            print(f"{error_msg} {error}")
+            print(f"{error_msg} {error}", flush=True)
             traceback.print_exc()
             await msg.channel.send(f"```{error_msg} :(```")
 

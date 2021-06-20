@@ -17,7 +17,7 @@ async def on_message(msg):
     """ Main Message Event Handler """
     # Only do something if command starts with ! or bot is not sending message
     if msg.author != CLIENT.user and msg.content.startswith("!"):
-        LOGGER.log_received(msg.author, msg.channel, msg.content)
+        LOGGER.log(f"Got {msg.content} from {msg.author} in {msg.channel}")
 
         args = msg.content.split(" ")
         cmd = args.pop(0)
@@ -32,7 +32,6 @@ async def on_message(msg):
 
         try:
             type_, resp = bot_cmd.commands[cmd](*args)
-            LOGGER.log_sent(msg.author, msg.channel, cmd)
 
             if type_ == "text":
                 await msg.channel.send(resp)

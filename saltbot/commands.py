@@ -103,7 +103,7 @@ class Command:
         """
         ret_msg = (
             f"```Good salty day to you {self._user}! Here's a list of commands "
-            "commands that I understand:\n\n"
+            "that I understand:\n\n"
         )
 
         for msg in MSG_DICT:

@@ -1,0 +1,32 @@
+name: Deliver to dockerhub
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deliver:
+    runs-on: ubuntu-20.04
+    env:
+      IMAGE_NAME: highsaltlevels/saltbot:latest-arm64
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v1
+
+    - name: Set up Docker Buildx
+      uses: crazy-max/ghaction-docker-buildx@v1
+      with:
+        version: latest
+
+    - name: Docker Login
+      if: success()
+      run: |
+        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+    - name: Build and Deliver
+      if: success()
+      run: |
+        docker buildx build --platform linux/arm/v7 -t highsaltlevels/saltbot:latest-arm64 --output type=image,push=true .

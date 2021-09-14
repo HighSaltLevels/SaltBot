@@ -1,10 +1,10 @@
-name: Python package
+name: Format and Test
 
 on: [push, pull_request]
 
 jobs:
   format-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.8]

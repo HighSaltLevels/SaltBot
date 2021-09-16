@@ -9,9 +9,16 @@ jobs:
   deliver:
     runs-on: ubuntu-20.04
     env:
-      IMAGE_NAME: highsaltlevels/saltbot:latest-arm64
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      BASTION_HOST: ${{ secrets.BASTION_HOST }}
+      BASTION_KEY: ${{ secrets.BASTION_KEY }}
+      BASTION_PORT: ${{ secrets.BASTION_PORT }}
+      BASTION_USER: ${{ secrets.BASTION_USER }}
+      K8S_HOST: ${{ secrets.K8S_HOST }}
+      K8S_KEY: ${{ secrets.K8S_KEY }}
+      K8S_PORT: ${{ secrets.K8S_PORT }}
+      K8S_USER: ${{ secrets.K8S_USER }}
     steps:
     - name: Checkout the code
       uses: actions/checkout@v1
@@ -30,3 +37,7 @@ jobs:
       if: success()
       run: |
         docker buildx build --platform linux/arm/v7 -t highsaltlevels/saltbot:latest-arm64 --output type=image,push=true .
+
+    - name: Deploy
+      if: success()
+      run: ./deploy.sh

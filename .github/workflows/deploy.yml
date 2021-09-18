@@ -1,4 +1,4 @@
-name: Deliver to dockerhub
+name: Deploy SaltBot
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  deliver:
+  deliver_and_deploy:
     runs-on: ubuntu-20.04
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -38,6 +38,6 @@ jobs:
       run: |
         docker buildx build --platform linux/arm/v7 -t highsaltlevels/saltbot:latest-arm64 --output type=image,push=true .
 
-    - name: Deploy
+    - name: Deploy Latest
       if: success()
       run: ./deploy.sh

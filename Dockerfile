@@ -8,7 +8,7 @@ RUN cd /saltbot && \
         build-essential \
         python3-pip \
         python3.8-dev && \
-    python3.8 -m pip install setuptools==39.0.1 && \
+    python3.8 -m pip install setuptools==39.0.1 wheel==0.37.0 && \
     python3.8 -m pip install -r requirements.txt
 
 WORKDIR /saltbot

@@ -263,7 +263,7 @@ class Command:
                 return "text", "```You can only use -a in a DM!```"
 
             args.remove("-a")
-            giphy = Giphy(args)
+            giphy = Giphy(*args)
             return "list", giphy.all_gifs
 
         try:
@@ -295,11 +295,9 @@ class Command:
             return "text", str(error)
 
         try:
-            youtube = Youtube(*args)
+            return "text", Youtube(*args).get_video(idx)
         except APIError as error:
             return "text", str(error)
-
-        return "text", youtube.get_video(idx)
 
     @staticmethod
     def waifu():

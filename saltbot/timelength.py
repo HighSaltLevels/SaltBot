@@ -7,6 +7,7 @@ import uuid
 
 UNIT_DICT = {
     "year": 31536000,
+    "years": 31536000,
     "month": 2592000,
     "months": 2592000,
     "weeks": 604800,

@@ -77,7 +77,7 @@ class Command:
             "!gif": self.gif,
             "!g": self.gif,
             "!nut": self.nut,
-            "!u": self.nut,
+            "!n": self.nut,
             "!jeopardy": self.jeopardy,
             "!j": self.jeopardy,
             "!help": self.help,

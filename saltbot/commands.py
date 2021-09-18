@@ -30,7 +30,6 @@ MSG_DICT = {
         "Type !gif followed by keywords to get a cool gif. For example: !gif dog"
     ),
     "!waifu (!w)": "Get a picture of a personal waifu that's different each time",
-    "!anime (!a)": "Get an anime recommendation just for you UwU",
     "!nut (!n)": "Receive a funny nut 'n go line",
     "!poll (!p)": 'Type "!poll help" for detailed information',
     "!vote (!v)": 'Vote in a poll. Type "!vote <poll id> <poll choice>" to cast your vote',
@@ -78,15 +77,13 @@ class Command:
             "!gif": self.gif,
             "!g": self.gif,
             "!nut": self.nut,
-            "!u": self.nut,
+            "!n": self.nut,
             "!jeopardy": self.jeopardy,
             "!j": self.jeopardy,
             "!help": self.help,
             "!h": self.help,
             "!waifu": self.waifu,
             "!w": self.waifu,
-            "!anime": self.anime,
-            "!a": self.anime,
             "!vote": self.vote,
             "!v": self.vote,
             "!poll": self.poll,
@@ -94,7 +91,7 @@ class Command:
             "!youtube": self.youtube,
             "!y": self.youtube,
             "!remind": self.remind,
-            "r": self.remind,
+            "!r": self.remind,
         }
 
     def help(self):
@@ -182,15 +179,9 @@ class Command:
 
         choices = [phrase.strip() for phrase in self._user_msg.content.split(";")]
 
-        try:
-            expiry_str = (
-                choices.pop(-1)
-                if "ends in" in choices[-1].lower()
-                else "ends in 1 hour"
-            )
-
-        except (KeyError, IndexError, ValueError):
-            return "text", POLL_HELP_MSG
+        expiry_str = (
+            choices.pop(-1) if "ends in" in choices[-1].lower() else "ends in 1 hour"
+        )
 
         words = expiry_str.split(" ")
 
@@ -227,7 +218,7 @@ class Command:
 
         # Verify status code
         if resp.status_code != 200:
-            return "```I'm Sorry. Something went wrong getting the questions```"
+            return "text", "```I'm Sorry. Something went wrong getting the questions```"
 
         # Convert to a json
         q_and_a = json.loads(resp.text)
@@ -269,7 +260,7 @@ class Command:
                 return "text", "```You can only use -a in a DM!```"
 
             args.remove("-a")
-            giphy = Giphy(args)
+            giphy = Giphy(*args)
             return "list", giphy.all_gifs
 
         try:
@@ -301,11 +292,9 @@ class Command:
             return "text", str(error)
 
         try:
-            youtube = Youtube(*args)
+            return "text", Youtube(*args).get_video(idx)
         except APIError as error:
             return "text", str(error)
-
-        return "text", youtube.get_video(idx)
 
     @staticmethod
     def waifu():
@@ -321,43 +310,6 @@ class Command:
                 return "file", "temp.jpg"
 
         return "text", "```Sorry, I coudn't get that waifu :(```"
-
-    @staticmethod
-    def anime():
-        """ Get a random anime recommendation """
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux i586; rv:63.0) Gecko/20100101 Firefox/63.0."
-        }
-        resp = requests.get("https://anidb.net/anime/random", headers=headers)
-        if resp.status_code != 200:
-            return "```Sowwy. Couldn't connect to the internet to get an anime recommendation :(```"
-        data = resp.text
-        title_idx = data.find("<title>")
-        title_idx += 1
-        title = ""
-        for char in data[title_idx:]:
-            if char == "<":
-                break
-
-            title += char
-
-        title = title[6:-15]
-
-        description_idx = data.find("content=")
-        description_idx += 8
-        description = ""
-        for char in data[description_idx:]:
-            if char == "/":
-                break
-
-            description += char
-
-        return (
-            "text",
-            "```Here's an anime for you:\n\nTitle:\n{}\n\nDescription:\n{}```".format(
-                title, description
-            ),
-        )
 
     def nut(self):
         """ Send a funny "nut" line """

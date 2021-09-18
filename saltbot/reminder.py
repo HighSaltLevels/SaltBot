@@ -145,7 +145,7 @@ class Reminder:
 
             except (IndexError, ValueError) as error:
                 raise ReminderError(
-                    "```Reninder time must be in format <amount> <unit> (ex 5 minutes)```"
+                    "```Reminder time must be in format <amount> <unit> (ex 5 minutes)```"
                 ) from error
 
         if self._cmd.lower() == "show":

@@ -94,7 +94,7 @@ class Command:
             "!youtube": self.youtube,
             "!y": self.youtube,
             "!remind": self.remind,
-            "r": self.remind,
+            "!r": self.remind,
         }
 
     def help(self):
@@ -182,15 +182,9 @@ class Command:
 
         choices = [phrase.strip() for phrase in self._user_msg.content.split(";")]
 
-        try:
-            expiry_str = (
-                choices.pop(-1)
-                if "ends in" in choices[-1].lower()
-                else "ends in 1 hour"
-            )
-
-        except (KeyError, IndexError, ValueError):
-            return "text", POLL_HELP_MSG
+        expiry_str = (
+            choices.pop(-1) if "ends in" in choices[-1].lower() else "ends in 1 hour"
+        )
 
         words = expiry_str.split(" ")
 
@@ -227,7 +221,7 @@ class Command:
 
         # Verify status code
         if resp.status_code != 200:
-            return "```I'm Sorry. Something went wrong getting the questions```"
+            return "text", "```I'm Sorry. Something went wrong getting the questions```"
 
         # Convert to a json
         q_and_a = json.loads(resp.text)

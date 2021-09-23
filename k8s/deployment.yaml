@@ -26,3 +26,6 @@ spec:
           value: __GIPHY_AUTH__
         - name: YOUTUBE_AUTH
           value: __YOUTUBE_AUTH__
+      securityContext:
+        runAsUser: 69
+        runAsGroup: 420

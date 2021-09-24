@@ -30,11 +30,13 @@ function prepare_keys() {
 }
 
 function redeploy() {
+    UPDATE_COMMAND="cd ~/saltbot2.0 && git pull origin master"
     DEPLOY_COMMAND="kubectl -n saltbot rollout restart deployment saltbot"
     STATUS_CHECK="kubectl -n saltbot rollout status deployment saltbot"
     PROXY_COMMAND="ssh -q -o StrictHostKeyChecking=no -i ${BASTION_KEY_PATH} -p ${BASTION_PORT} -W %h:%p ${BASTION_USER}@${BASTION_HOST}"
 
     echo "Redeploying..."
+    ssh -q -v -o StrictHostKeyChecking=no -i ${K8S_KEY_PATH} -p ${K8S_PORT} -o ProxyCommand="${PROXY_COMMAND}" ${K8S_USER}@${K8S_HOST} "${UPDATE_COMMAND}"
     ssh -q -o StrictHostKeyChecking=no -i ${K8S_KEY_PATH} -p ${K8S_PORT} -o ProxyCommand="${PROXY_COMMAND}" ${K8S_USER}@${K8S_HOST} "${DEPLOY_COMMAND}"
     ssh -q -o StrictHostKeyChecking=no -i ${K8S_KEY_PATH} -p ${K8S_PORT} -o ProxyCommand="${PROXY_COMMAND}" ${K8S_USER}@${K8S_HOST} "${STATUS_CHECK}"
     echo "Redeploy Successful!"

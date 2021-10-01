@@ -36,7 +36,7 @@ jobs:
     - name: Build and Deliver
       if: success()
       run: |
-        docker buildx build --platform linux/arm64 -t highsaltlevels/saltbot:latest-arm64 --output type=image,push=true .
+        docker buildx build --platform linux/amd64 -t highsaltlevels/saltbot:latest --output type=image,push=true .
 
     - name: Deploy Latest
       if: success()

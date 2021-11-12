@@ -12,7 +12,10 @@ RUN apk add gcc musl-dev zlib-dev && \
 FROM alpine:3.14.2 as deliverable
 
 # Set up working directories
-RUN mkdir -p /.config/saltbot/reminders && \
+RUN apk add tzdata && \
+    cp /usr/share/zoneinfo/US/Eastern /etc/localtime && \
+    echo "US/Eastern" > /etc/timezone && \
+    mkdir -p /.config/saltbot/reminders && \
     mkdir -p /.config/saltbot/polls && \
     touch /log.txt && \
     chown -R 69:420 /.config && \

@@ -1,27 +1,19 @@
-FROM python:3.9.7-alpine3.14 as builder
+FROM python:3.9.7-alpine3.14
 
 WORKDIR /saltbot
 
-COPY requirements.txt saltbot /
+COPY requirements.txt saltbot/* /saltbot/
 
-RUN apk add gcc musl-dev zlib-dev && \
-    python3 -m pip install -r /requirements.txt pyinstaller==4.5.1 && \
-    pyinstaller -F -p "/" -n saltbot /__main__.py
-
-
-FROM alpine:3.14.2 as deliverable
-
-# Set up working directories
-RUN apk add tzdata && \
+RUN apk add tzdata gcc musl-dev zlib-dev && \
+    python3 -m pip install -r /saltbot/requirements.txt && \
     cp /usr/share/zoneinfo/US/Eastern /etc/localtime && \
     echo "US/Eastern" > /etc/timezone && \
     mkdir -p /.config/saltbot/reminders && \
     mkdir -p /.config/saltbot/polls && \
-    touch /log.txt && \
+    touch /saltbot/log.txt && \
     chown -R 69:420 /.config && \
-    chown -R 69:420 /log.txt
+    chown -R 69:420 /saltbot/log.txt
 
-COPY --chown=69:420 --from=builder /saltbot/dist/saltbot /saltbot
 USER 69:420
 
-ENTRYPOINT /saltbot
+ENTRYPOINT python3 /saltbot

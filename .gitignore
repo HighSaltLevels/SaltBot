@@ -8,3 +8,8 @@ temp.jpg
 # Dev Environment directories
 .coverage
 .venv
+
+# For the docker-compose.yml
+# Use this to set the auth env vars.
+# https://docs.docker.com/compose/compose-file/compose-file-v3/#env_file
+auth.env

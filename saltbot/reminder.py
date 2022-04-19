@@ -1,20 +1,15 @@
 """
     Reminder class for handing reminders
 """
-import asyncio
 from datetime import datetime
-import json
-import glob
-import os
-from pathlib import Path
-import time
+from http import HTTPStatus
+import uuid
 
+from kubernetes.client.rest import ApiException
 import pytz
 
 from timelength import TimeLength
-
-REMINDER_DIR = os.path.join(str(Path.home()), ".config/saltbot/reminders")
-os.makedirs(REMINDER_DIR, exist_ok=True)
+from common.k8s.configmap import ConfigMap
 
 REMINDER_HELP_MSG = (
     '```Set a reminder, show reminders or delete a reminder.\n\nTo set one:\n"!remind set finish '
@@ -25,114 +20,24 @@ REMINDER_HELP_MSG = (
 
 
 class ReminderError(Exception):
-    """ Raised when there is an issue with a reminder operation """
-
-
-class ReminderFile(dict):
-    """ Reminder File Object to Read and Write from memory """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        path = kwargs.pop("path")
-
-        self.msg = kwargs.get("msg")
-        self.unique_id = kwargs.get("unique_id")
-        self.timeout = kwargs.get("timeout")
-        self._channel = kwargs.get("channel")
-        self._path = f"{path}/{self.unique_id}.json"
-
-        if os.path.exists(self._path):
-            self._read()
-
-    def __str__(self):
-        dt_obj = datetime.fromtimestamp(self.timeout)
-        timezone = pytz.timezone("US/Eastern")
-        timezone.localize(dt_obj)
-
-        formatted_time = dt_obj.strftime("%b %d, %Y at %I:%M:%S %p ET")
-
-        return f'{self.unique_id}: "{self.msg}" at {formatted_time}'
-
-    @property
-    def channel(self):
-        """ Read only property to get the channel ID """
-        return self._channel
-
-    @property
-    def expired(self):
-        """ Property to determine if a reminder has expired """
-        return self.timeout < time.time()
-
-    def write(self):
-        """ Write a reminder to disk """
-        with open(self._path, "w") as stream:
-            stream.write(json.dumps(self))
-
-    def delete(self):
-        """ Delete a reminder from disk """
-        try:
-            os.remove(self._path)
-        except FileNotFoundError as error:
-            raise ReminderError(
-                "```That reminder ID does not exist! :o\n"
-                'Type "!remind show" to see all your reminders```'
-            ) from error
-
-    def _read(self):
-        with open(self._path) as stream:
-            data = json.load(stream)
-
-        self.msg = data["msg"]
-        self.unique_id = data["unique_id"]
-        self.timeout = data["timeout"]
-        self._channel = data["channel"]
-
-
-class ReminderFileHandler:
-    """ File Finder/Handler """
-
-    def __init__(self, user):
-        self._user = user
-        self.path = f"{REMINDER_DIR}/{user}"
-        os.makedirs(self.path, exist_ok=True)
-
-    def load(self, reminder_id):
-        """ Load an existing reminder by id """
-        return ReminderFile(path=self.path, unique_id=reminder_id)
-
-    def write(self, **kwargs):
-        """ Write a reminder to disk and return the object """
-        kwargs["path"] = self.path
-        reminder_file = ReminderFile(**kwargs)
-        reminder_file.write()
-        return str(reminder_file)
-
-    @property
-    def reminders(self):
-        """ Get all reminders for a specified user """
-        reminders = []
-        files = glob.glob(f"{self.path}/*")
-        for file_ in files:
-            unique_id = get_id_from_full_path(file_)
-            reminders.append(ReminderFile(path=self.path, unique_id=unique_id))
-
-        return reminders
+    """Raised when there is an issue with a reminder operation"""
 
 
 class Reminder:
-    """ Reminder class """
+    """Reminder class"""
 
-    def __init__(self, user, channel, *args):
+    def __init__(self, user, channel, cmd, author, *args):
         # Convert the tuple to a list
         self._args = list(args)
 
+        # Convert the channel to a string so it can be put in a configmap
+        self._channel = str(channel)
         self._user = user
-        self._channel = channel
-        self._cmd = self._args.pop(0)
+        self._cmd = cmd
+        self._author = author
 
     def execute(self):
-        """ Parse through the reminder and set appropriate instance vars """
+        """Parse through the reminder and set appropriate instance vars"""
         if self._cmd.lower() == "set":
             try:
                 unit = self._args.pop(-1)
@@ -149,7 +54,9 @@ class Reminder:
                 ) from error
 
         if self._cmd.lower() == "show":
-            return self.show_reminders()
+            # Since labels cannot use "#", replace with a "."
+            selector = f"user={self._user}".replace("#", ".")
+            return self.list(selector=selector)
 
         if self._cmd.lower() == "delete":
             reminder_id = self._args.pop(-1)
@@ -160,62 +67,68 @@ class Reminder:
         )
 
     def set_reminder(self, unit, amount_of_time, msg):
-        """ Write a reminder to disk """
+        """Write a reminder to disk"""
+        # Generate an ID using the last part of a UUID4 string
+        _id = str(uuid.uuid4()).split("-")[-1]
         try:
             time_length = TimeLength(unit, amount_of_time)
         except ValueError as error:
             raise ReminderError(str(error)) from error
 
-        reminder_data = {
+        name = f"reminder-{_id}"
+        # Since labels cannot use "#", replace with a "."
+        labels = {"user": self._user.replace("#", ".")}
+        body = {
+            "kind": "reminder",
+            "claimed": "false",
+            "author": str(self._author.id),
             "msg": msg,
-            "unique_id": time_length.unique_id,
-            "timeout": time_length.timeout,
+            "unique_id": _id,
+            "expiry": time_length.timeout,
             "channel": self._channel,
         }
 
-        handler = ReminderFileHandler(self._user)
-        reminder = handler.write(**reminder_data)
+        config_map = ConfigMap()
+        config_map.create(name=name, labels=labels, data=body)
 
-        return f"```{reminder}```"
+        return f"```Reminder set with ID {_id}```"
 
-    def show_reminders(self):
-        """ Show all reminders """
-        reminder_str = "```Your Reminders:\n"
-        for reminder in ReminderFileHandler(self._user).reminders:
-            reminder_str += f"\n{reminder}"
+    def list(self, selector):
+        """Show all reminders"""
+        reminders = ConfigMap().list(label_selector=selector)
 
-        return f"{reminder_str}```"
+        final_resp = "```Your Reminders:\n"
+        for reminder in reminders:
+            reminder_str = self._get_reminder_str(reminder)
+            final_resp += f"\n{reminder_str}"
 
-    def delete(self, reminder_id):
-        """ Delete a user's remind using the id """
-        reminder = ReminderFileHandler(self._user).load(reminder_id)
-        reminder.delete()
+        return f"{final_resp}```"
 
-        return f"```Ok. I've deleted:\n{reminder}```"
+    @staticmethod
+    def delete(reminder_id):
+        """Delete a user's remind using the id"""
+        name = f"reminder-{reminder_id}"
+        try:
+            ConfigMap().delete(name)
+        except ApiException as error:
+            if error.status == HTTPStatus.NOT_FOUND:
+                raise ReminderError(
+                    f"```Reminder {reminder_id} does not exist! "
+                    'Check reminders using "!remind show"```'
+                ) from error
 
+            raise error
 
-async def monitor_reminders(discord_client):
-    """ Check reminder files for expiry every 5 seconds """
-    while True:
-        for user_path in glob.glob(f"{REMINDER_DIR}/*"):
-            user = user_path.split("/")[-1]
-            handler = ReminderFileHandler(user)
+        return f"```Ok. I've deleted reminder {reminder_id}```"
 
-            for reminder_file in glob.glob(f"{user_path}/*"):
-                reminder_id = get_id_from_full_path(reminder_file)
-                reminder = handler.load(reminder_id)
-                if reminder.expired:
-                    channel = discord_client.get_channel(reminder.channel)
-                    await channel.send(f"```Remember:\n{reminder.msg}```")
-                    try:
-                        reminder.delete()
-                    except ReminderError:
-                        # If the reminder somehow gets deleted, ignore it
-                        pass
+    @staticmethod
+    def _get_reminder_str(reminder):
+        """Take the raw reminder response and convert it to human readable"""
+        # ConfigMaps only store strings so we need to parse to int
+        dt_obj = datetime.fromtimestamp(int(reminder["timeout"]))
+        timezone = pytz.timezone("US/Eastern")
+        timezone.localize(dt_obj)
 
-        await asyncio.sleep(5)
+        formatted_time = dt_obj.strftime("%b %d, %Y at %I:%M:%S %p ET")
 
-
-def get_id_from_full_path(path):
-    """ Pull the id from the path name """
-    return os.path.splitext(path)[0].split("/")[-1]
+        return f"""{reminder['unique_id']}: "{reminder['msg']}" at {formatted_time}"""

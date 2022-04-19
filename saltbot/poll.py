@@ -1,13 +1,11 @@
 """ modlue for poll operations """
-import asyncio
-import glob
+from http import HTTPStatus
 import json
-import os
-from pathlib import Path
-import time
+import uuid
 
-POLL_DIR = os.path.join(str(Path.home()), ".config/saltbot/polls")
-os.makedirs(POLL_DIR, exist_ok=True)
+from kubernetes.client.rest import ApiException
+
+from common.k8s.configmap import ConfigMap
 
 POLL_HELP_MSG = (
     "```How to set a poll:\nType the !poll command followed by the question, the "
@@ -19,106 +17,77 @@ POLL_HELP_MSG = (
 )
 
 
+class PollError(Exception):
+    """
+    Raised when there is an unknown poll error. It is expected
+    to send the error string back to the user.
+    """
+
+
+# pylint: disable=too-many-instance-attributes
 class Poll:
-    """ Poll class """
+    """Poll class"""
 
     def __init__(self, **kwargs):
-        self._expiry = None
-        self._poll_id = None
+        # Set the expiry if it's passed in or use the time_length
+        self._expiry = kwargs.get("expiry")
         self._time_length = kwargs.get("time_length")
         if self._time_length:
             self._expiry = self._time_length.timeout
-            self._poll_id = self._time_length.unique_id
 
-        # Default to no choices
-        self.choices = kwargs.get("choices", 0)
+        self.unique_id = kwargs.get("unique_id")
+        self.author = kwargs.get("author")
+        self.choices = kwargs.get("choices", [])
         self.votes = kwargs.get("votes")
-
         self.prompt = kwargs.get("prompt")
-        self.channel_id = kwargs.get("channel_id")
+        self.channel = kwargs.get("channel")
 
     @property
-    def poll_id(self):
-        """ poll_id read only property """
-        return self._poll_id
+    def data(self):
+        """ Return a json representation of the poll """
+        return {
+            "unique_id": self.unique_id,
+            "author": self.author,
+            "kind": "poll",
+            "claimed": "false",
+            "prompt": self.prompt,
+            # To be stored in a config map, it has to be a string
+            "choices": json.dumps(self.choices),
+            "expiry": self._expiry,
+            "channel": self.channel,
+            "votes": json.dumps(self.votes),
+        }
 
     @property
     def expiry(self):
-        """ Read only poll expiry """
+        """Read only poll expiry"""
         return self._expiry
 
-    def save(self):
-        """ Save the poll to disk """
-        data = {
-            "prompt": self.prompt,
-            "choices": self.choices,
-            "expiry": self._expiry,
-            "poll_id": self._poll_id,
-            "channel_id": self.channel_id,
-            "votes": self.votes,
-        }
-        with open(f"{POLL_DIR}/{self._poll_id}.json", "w") as stream:
-            stream.write(json.dumps(data))
+    def create(self):
+        """Create the configmap representation"""
+        # Build an ID using the last part of a UUID
+        self.unique_id = str(uuid.uuid4()).split("-")[-1]
+        name = f"poll-{self.unique_id}"
 
-    def load(self, poll_id):
-        """ Load the data from disk """
-        with open(f"{POLL_DIR}/{poll_id}.json") as stream:
-            data = json.load(stream)
+        config_map = ConfigMap()
+        config_map.create(name, labels={}, data=self.data)
 
+        return self.unique_id
+
+    def patch(self, poll_id):
+        """Patch an existing poll object by ID"""
+        name = f"poll-{poll_id}"
+        config_map = ConfigMap()
+        config_map.patch(name, self.data)
+
+    @staticmethod
+    def get(poll_id):
+        """Get the corresponding poll by ID"""
+        name = f"poll-{poll_id}"
+        config_map = ConfigMap()
         try:
-            self.prompt = data["prompt"]
-            self.choices = data["choices"]
-            self._expiry = data["expiry"]
-            self._poll_id = data["poll_id"]
-            self.channel_id = data["channel_id"]
-            self.votes = data["votes"]
-        except KeyError as error:
-            raise ValueError(
-                f"```Something went wrong with poll {poll_id}```"
-            ) from error
-
-    def delete(self):
-        """ Delete the poll """
-        # Poll ID has to exist to be able to delete a poll
-        assert self._poll_id is not None
-        try:
-            os.remove(f"{POLL_DIR}/{self._poll_id}.json")
-        except FileNotFoundError:
-            print(f"Warning: {self._poll_id} does not exist!", flush=True)
-
-
-async def monitor_polls(discord_client):
-    """ Check poll files for expiry every 5 seconds """
-    while True:
-        poll = Poll()
-        poll_files = glob.glob(f"{POLL_DIR}/*")
-        for poll_file in poll_files:
-            # Get the ID from the file name
-            poll_id = os.path.splitext(poll_file)[0].split("/")[-1]
-            poll.load(poll_id)
-
-            if time.time() > poll.expiry:
-                channel = discord_client.get_channel(poll.channel_id)
-                total_votes = 0
-                results = {}
-                for choice_num in range(len(poll.choices)):
-                    total_for_this_choice = len(poll.votes[str(choice_num)])
-                    results[choice_num] = total_for_this_choice
-                    total_votes += total_for_this_choice
-
-                response = f"```Results (Total votes: {total_votes}):\n\n"
-                try:
-                    for result in results:
-                        choice = poll.choices[result]
-                        response += (
-                            f"\t{choice} -> "
-                            f"{float(len(poll.votes[str(result)])/total_votes) * 100:.0f}"
-                            "%\n"
-                        )
-                except ZeroDivisionError:
-                    response = "```No one voted on this poll :("
-
-                await channel.send(f"{response}```")
-                poll.delete()
-
-        await asyncio.sleep(5)
+            return config_map.get(name)
+        except ApiException as error:
+            if error.status == HTTPStatus.NOT_FOUND:
+                raise PollError("```Poll {poll_id} does not exist!```") from error
+            raise error

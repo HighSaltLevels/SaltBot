@@ -9,7 +9,7 @@ import requests
 
 from api import APIError
 from giphy import Giphy
-from poll import Poll, POLL_HELP_MSG
+from poll import Poll, PollError, POLL_HELP_MSG
 from reminder import Reminder, ReminderError, REMINDER_HELP_MSG
 from timelength import TimeLength
 from version import VERSION
@@ -39,7 +39,7 @@ MSG_DICT = {
 
 
 def _get_idx_from_args(args):
-    """ Parse the index from an API response and pick a random number if idx not present """
+    """Parse the index from an API response and pick a random number if idx not present"""
     return_args = deepcopy(args)
     idx = -1
     if "-i" in args:
@@ -64,9 +64,10 @@ def _get_idx_from_args(args):
 
 
 class Command:
-    """ Command Object for executing a SaltBot command """
+    """Command Object for executing a SaltBot command"""
 
     def __init__(self, user_msg):
+        self._author = user_msg.author
         self._full_user = str(user_msg.author)
         self._user = self._full_user.split("#")[0]
         self._user_msg = user_msg
@@ -119,11 +120,19 @@ class Command:
         """
         Set a reminder
         """
+        # Convert from tuple to list
+        args = list(args)
+
         if len(args) == 0 or args[0] == "help":
             return "text", REMINDER_HELP_MSG
 
         try:
-            reminder = Reminder(self._full_user, self._channel.id, *args)
+            # Pull the command from the args. It should be one of:
+            # [set, show, delete]. A ReminderError is raised if not.
+            cmd = args.pop(0)
+            reminder = Reminder(
+                self._full_user, self._channel.id, cmd, self._author, *args
+            )
             return "text", reminder.execute()
 
         except ReminderError as error:
@@ -145,27 +154,38 @@ class Command:
 
         try:
             poll = Poll()
-            poll.load(poll_id)
-        except FileNotFoundError:
-            return "text", f"```Poll {poll_id} does not exist or has expired```"
-        except ValueError as error:
+            data = poll.get(poll_id)
+
+            choices = json.loads(data["choices"])
+            votes = json.loads(data["votes"])
+
+            if choice not in range(1, len(choices) + 1):
+                response = f"```{choice} is not an available selection from:\n\n"
+                for choice_num, _ in enumerate(choices):
+                    response += f"{choice_num+1}.\t{choices[choice_num]}\n"
+                return "text", f"{response}```"
+
+            for option, takers in votes.items():
+                if self._full_user in takers:
+                    votes[option].remove(self._full_user)
+
+            votes[str(choice - 1)].append(self._full_user)
+
+            # Patch the poll config map with updated data
+            Poll(
+                unique_id=data["unique_id"],
+                author=data["author"],
+                expiry=data["expiry"],
+                choices=choices,
+                votes=votes,
+                prompt=data["prompt"],
+                channel=data["channel"],
+            ).patch(poll_id)
+
+        except PollError as error:
             return "text", str(error)
 
-        choice_len = len(poll.choices)
-
-        if choice not in range(1, choice_len + 1):
-            response = f"```{choice} is not an available selection from:\n\n"
-            for choice_num in range(choice_len):
-                response += f"{choice_num+1}.\t{poll.choices[choice_num]}\n"
-            return "text", f"{response}```"
-
-        for option, takers in poll.votes.items():
-            if self._full_user in takers:
-                poll.votes[option].remove(self._full_user)
-
-        poll.votes[str(choice - 1)].append(self._full_user)
-        poll.save()
-        return "text", f"```You have selected {poll.choices[choice-1]}```"
+        return "text", f"```You have selected {choices[choice-1]}```"
 
     def poll(self, *args):
         """
@@ -186,23 +206,30 @@ class Command:
         words = expiry_str.split(" ")
 
         try:
-            poll = Poll(time_length=TimeLength(unit=words[3], amount_of_time=words[2]))
+            time_length = TimeLength(unit=words[3], amount_of_time=words[2])
+            prompt = choices.pop(0)
+            # To be stored in a configmap, it needs to be a string
+            channel_id = str(self._channel.id)
+            votes = {idx: [] for idx in range(len(choices))}
+            poll = Poll(
+                author=str(self._author.id),
+                time_length=time_length,
+                prompt=prompt,
+                choices=choices,
+                channel=channel_id,
+                votes=votes,
+            )
         except ValueError:
             return "text", POLL_HELP_MSG
 
-        poll.prompt = choices.pop(0)
-        poll.choices = choices
-        poll.channel_id = self._channel.id
-        poll.votes = {idx: [] for idx in range(len(poll.choices))}
-
-        poll.save()
+        poll_id = poll.create()
 
         return_str = f"```{poll.prompt} ({expiry_str})\n\n"
         for choice_num in range(len(poll.choices)):
             return_str += f"{choice_num+1}.\t{poll.choices[choice_num]}\n"
 
         return_str += (
-            f'\n\nType or DM me "!vote {poll.poll_id} ' '<choice number>" to vote```'
+            f'\n\nType or DM me "!vote {poll_id} ' '<choice number>" to vote```'
         )
 
         return "text", return_str
@@ -298,7 +325,7 @@ class Command:
 
     @staticmethod
     def waifu():
-        """ Get a picture of a waifu from thiswaifudoesnotexist.com """
+        """Get a picture of a waifu from thiswaifudoesnotexist.com"""
         for _ in range(5):
             rand = randint(0, 99999)
             url = f"https://www.thiswaifudoesnotexist.net/example-{rand}.jpg"
@@ -312,7 +339,7 @@ class Command:
         return "text", "```Sorry, I coudn't get that waifu :(```"
 
     def nut(self):
-        """ Send a funny "nut" line """
+        """Send a funny "nut" line"""
         with open("nut.txt") as stream:
             lines = stream.readlines()
 
@@ -321,7 +348,7 @@ class Command:
 
 
 def _remove_html_crap(text):
-    """ Strip out all poorly formatted html stuff """
+    """Strip out all poorly formatted html stuff"""
     return (
         text.replace("<i>", "")
         .replace("</i>", "")

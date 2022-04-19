@@ -15,7 +15,7 @@ CLIENT = discord.Client()
 
 @CLIENT.event
 async def on_message(msg):
-    """ Main Message Event Handler """
+    """Main Message Event Handler"""
     # Only do something if command starts with ! or bot is not sending message
     if msg.author != CLIENT.user and msg.content.startswith("!"):
         LOGGER.log(f"Got {msg.content} from {msg.author} in {msg.channel}")
@@ -53,7 +53,7 @@ async def on_message(msg):
 
 @CLIENT.event
 async def on_ready():
-    """ Print out basic info and set status on startup """
+    """Print out basic info and set status on startup"""
     LOGGER.log("Logged in as")
     LOGGER.log(CLIENT.user.name)
     LOGGER.log(str(CLIENT.user.id))

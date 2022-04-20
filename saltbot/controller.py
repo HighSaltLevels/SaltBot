@@ -6,8 +6,6 @@ import discord
 
 from commands import Command
 from logger import Logger
-from poll import monitor_polls
-from reminder import monitor_reminders
 
 LOGGER = Logger()
 CLIENT = discord.Client()
@@ -58,6 +56,3 @@ async def on_ready():
     LOGGER.log(CLIENT.user.name)
     LOGGER.log(str(CLIENT.user.id))
     await CLIENT.change_presence(activity=discord.Game(name="The Salt Shaker"))
-
-    for coroutine in (monitor_polls, monitor_reminders):
-        CLIENT.loop.create_task(coroutine(CLIENT))

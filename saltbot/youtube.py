@@ -24,7 +24,8 @@ class Youtube(API):
         if self.num_videos == 0:
             raise APIError("```Sorry, there were no videos for that query :(```")
 
-    def _create_url(self, query_args):
+    @staticmethod
+    def _create_url(query_args):
         """Create the youtube query string"""
         query = ",".join(query_args)
         return (

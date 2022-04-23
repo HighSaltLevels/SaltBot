@@ -29,7 +29,8 @@ class Giphy(API):
         self.validate_idx(idx, max_idx)
         return self.data["data"][idx]["bitly_gif_url"]
 
-    def _create_url(self, query_args):
+    @staticmethod
+    def _create_url(query_args):
         """Create the url query url"""
         query = "+".join(query_args)
         return f"http://api.giphy.com/v1/gifs/search?q={query}&api_key={GIPHY_AUTH}"

@@ -44,7 +44,7 @@ class Poll:
 
     @property
     def data(self):
-        """ Return a json representation of the poll """
+        """Return a json representation of the poll"""
         return {
             "unique_id": self.unique_id,
             "author": self.author,

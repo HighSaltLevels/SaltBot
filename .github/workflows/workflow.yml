@@ -19,11 +19,11 @@ jobs:
           python -m pip install -r requirements.txt -r requirements-dev.txt
       - name: Run black
         run: |
-          black --diff -q saltbot tests # Print out discrepancies before potentially alerting
-          black --check saltbot tests
-      - name: Check with pylint
-        run: |
-          PYTHONPATH=$(pwd)/saltbot pylint saltbot tests
+          black --diff -q saltbot tests messenger common # Print out discrepancies before potentially alerting
+          black --check saltbot tests messenger common
+#      - name: Check with pylint
+#        run: |
+#          PYTHONPATH=$(pwd)/saltbot pylint saltbot tests
       - name: Run Tests
         run: |
           PYTHONPATH=$(pwd)/saltbot coverage run --source=saltbot -m pytest tests

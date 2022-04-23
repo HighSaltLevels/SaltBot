@@ -11,7 +11,7 @@ from youtube import Youtube, YOUTUBE_AUTH, MAX_REQUESTED_VIDS, BASE_URL
 
 @pytest.fixture(name="mock_response")
 def create_mock_response():
-    """ Create a mock requests response object """
+    """Create a mock requests response object"""
     resp = mock.Mock(spec=Response)
     resp.status_code = 200
     resp.json.return_value = {"items": [{"id": {"videoId": "isaac"}}]}
@@ -20,7 +20,7 @@ def create_mock_response():
 
 @mock.patch("api.API._request")
 def test_get_video(mock_request, mock_response):
-    """ Test getting a YT video """
+    """Test getting a YT video"""
     mock_request.return_value = mock_response
     youtube = Youtube("northernlion")
     assert youtube.url == (

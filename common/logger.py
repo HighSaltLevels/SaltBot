@@ -2,14 +2,14 @@
 
 
 class Logger:
-    """ Logger object for writing the log file """
+    """Logger object for writing the log file"""
 
     def __init__(self, logfile="log.txt"):
         self._logfile = logfile
         self.initialize_logfile()
 
     def log(self, msg):
-        """ Print the message and write to the log file """
+        """Print the message and write to the log file"""
         try:
             print(msg, flush=True)
         except UnicodeDecodeError:
@@ -21,6 +21,9 @@ class Logger:
             stream.write(f"{msg}\n")
 
     def initialize_logfile(self):
-        """ Clear the log file """
+        """Clear the log file"""
         with open(self._logfile, "w"):
             pass
+
+
+LOGGER = Logger()

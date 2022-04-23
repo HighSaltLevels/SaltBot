@@ -11,7 +11,7 @@ from giphy import Giphy, GIPHY_AUTH
 
 @pytest.fixture(name="mock_response")
 def create_mock_response():
-    """ Create a mock requests response object """
+    """Create a mock requests response object"""
     resp = mock.Mock(spec=Response)
     resp.status_code = 200
     resp.json.return_value = {"data": [{"bitly_gif_url": "foo"}]}
@@ -20,7 +20,7 @@ def create_mock_response():
 
 @mock.patch("api.API._request")
 def test_request_gif(mock_request, mock_response):
-    """ Test getting a gif """
+    """Test getting a gif"""
     # Try getting a good gif
     mock_request.return_value = mock_response
     giphy = Giphy("dog")
@@ -39,7 +39,7 @@ def test_request_gif(mock_request, mock_response):
 
 @mock.patch("api.API._request")
 def test_giphy_properties(mock_request, mock_response):
-    """ Test the giphy {num_gifs} and {all_gifs} properties """
+    """Test the giphy {num_gifs} and {all_gifs} properties"""
     mock_request.return_value = mock_response
 
     # Mock response has 1 "gif"
@@ -50,7 +50,7 @@ def test_giphy_properties(mock_request, mock_response):
 
 @mock.patch("api.API._request")
 def test_get_gif(mock_request, mock_response):
-    """ Test getting a gif and retrieving from the json resp """
+    """Test getting a gif and retrieving from the json resp"""
     mock_request.return_value = mock_response
 
     giphy = Giphy("dog")
@@ -59,7 +59,7 @@ def test_get_gif(mock_request, mock_response):
 
 @mock.patch("api.API._request")
 def test_validate_num_gifs(mock_request, mock_response):
-    """ Test validation of the number of gifs in a resp """
+    """Test validation of the number of gifs in a resp"""
     # Test a non-zero number of gifs
     mock_request.return_value = mock_response
     giphy = Giphy("dog")

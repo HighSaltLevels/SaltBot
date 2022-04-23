@@ -24,7 +24,7 @@ UNIT_DICT = {
 
 
 class TimeLength:
-    """ TimeLength class """
+    """TimeLength class"""
 
     def __init__(self, unit, amount_of_time):
         try:
@@ -33,14 +33,14 @@ class TimeLength:
             raise ValueError(f"```Invalid unit {unit}```") from error
 
         self._id = str(uuid.uuid4()).split("-")[0]
-        self._timeout = int(time.time()) + int(amount_of_time) * multiplier
+        self._timeout = str(int(time.time()) + int(amount_of_time) * multiplier)
 
     @property
     def timeout(self):
-        """ Epoch timeout """
+        """Epoch timeout"""
         return self._timeout
 
     @property
     def unique_id(self):
-        """ Unique ID """
+        """Unique ID"""
         return self._id

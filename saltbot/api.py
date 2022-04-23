@@ -6,11 +6,11 @@ import requests
 
 
 class APIError(Exception):
-    """ Raised if there is an issue getting the API query """
+    """Raised if there is an issue getting the API query"""
 
 
 class API:
-    """ API Base Class """
+    """API Base Class"""
 
     def __init__(self, *query_args):
         self.url = self._create_url(list(query_args))
@@ -22,17 +22,17 @@ class API:
         raise NotImplementedError
 
     def _request(self):
-        """ Do an HTTP GET on the url """
+        """Do an HTTP GET on the url"""
         return requests.get(self.url)
 
     def validate_status(self):
-        """ Check if status code was 200 """
+        """Check if status code was 200"""
         if self.response.status_code != HTTPStatus.OK:
             raise APIError("```Sorry, I had trouble getting that query :(```")
 
     @staticmethod
     def validate_idx(idx, max_idx):
-        """ Verify that idx is valid and not out of range """
+        """Verify that idx is valid and not out of range"""
         # Specified index wasn't an integer
         try:
             idx = int(idx)

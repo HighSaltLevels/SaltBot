@@ -3,12 +3,12 @@ import json
 
 
 def create_user_msg(content=""):
-    """ Create a mock object with all the attributes of the discord obj """
+    """Create a mock object with all the attributes of the discord obj"""
 
     # This is a mock class and has no real use anyway.
     # pylint: disable=too-few-public-methods
     class MockChannel:
-        """ Mock Channel object """
+        """Mock Channel object"""
 
         def __init__(self):
             # Unfortunately, the class we're mocking used an invalid name :(
@@ -16,7 +16,7 @@ def create_user_msg(content=""):
             self.id = "baz"
 
     class MockDiscordObj:
-        """ Mock Discord object """
+        """Mock Discord object"""
 
         def __init__(self, content):
             self.author = "foo"
@@ -27,12 +27,12 @@ def create_user_msg(content=""):
 
 
 def create_mock_response(status_code, kind):
-    """ Create a mock response object depending on the kind """
+    """Create a mock response object depending on the kind"""
 
     # This is a mock class and has no real use anyway.
     # pylint: disable=too-few-public-methods
     class MockResponse:
-        """ Mock requests response object """
+        """Mock requests response object"""
 
         def __init__(self, status_code, kind):
             self.status_code = status_code
@@ -88,7 +88,7 @@ def create_mock_response(status_code, kind):
                 self.text = json.dumps({"items": []})
 
         def json(self):
-            """ Return mocked response as json """
+            """Return mocked response as json"""
             return json.loads(self.text)
 
     return MockResponse(status_code, kind)

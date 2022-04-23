@@ -8,13 +8,13 @@ from api import APIError, API
 
 
 def test_create_url():
-    """ Test creating the url is not implemented for the base class """
+    """Test creating the url is not implemented for the base class"""
     with pytest.raises(NotImplementedError):
         API("foo")
 
 
 def test_request():
-    """ Test making a request on the url """
+    """Test making a request on the url"""
     with mock.patch("api.API._create_url") as mock_create:
         mock_create.return_value = "https://google.com"
         with mock.patch("requests.get") as mock_get:
@@ -24,7 +24,7 @@ def test_request():
 
 
 def test_validate_idx():
-    """ Test the validation of the response index """
+    """Test the validation of the response index"""
     with mock.patch("api.API._request"):
         with mock.patch("api.API._create_url"):
             with mock.patch("api.API.validate_status"):

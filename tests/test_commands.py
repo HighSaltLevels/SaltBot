@@ -13,7 +13,7 @@ from .utils import create_user_msg, create_mock_response
 
 
 def test_help():
-    """ Test the help command """
+    """Test the help command"""
     user_msg = create_user_msg()
     # Test all commands are documented in help
     for _help in {"!h", "!help"}:
@@ -24,7 +24,7 @@ def test_help():
 
 
 def test_jeopardy():
-    """ Test the jeopardy command """
+    """Test the jeopardy command"""
     user_msg = create_user_msg()
     for cmd in {"!j", "!jeopardy"}:
         with mock.patch("commands.requests.get") as m_get:
@@ -41,7 +41,7 @@ def test_jeopardy():
 
 
 def test_whisper():
-    """ Test the whisper command """
+    """Test the whisper command"""
     user_msg = create_user_msg()
     for cmd in {"!pm", "!whisper"}:
         _, msg = Command(user_msg).commands[cmd]()
@@ -50,7 +50,7 @@ def test_whisper():
 
 @mock.patch("api.API._request")
 def test_gif(m_request):
-    """ Test the gif command """
+    """Test the gif command"""
     user_msg = create_user_msg()
     for cmd in {"!g", "!gif"}:
         # Test invalid args
@@ -96,7 +96,7 @@ def test_gif(m_request):
 
 @mock.patch("api.API._request")
 def test_youtube(m_request):
-    """ Test the youtube command """
+    """Test the youtube command"""
     user_msg = create_user_msg()
     for cmd in {"!y", "!youtube"}:
         # Test no args throws an error
@@ -125,7 +125,7 @@ def test_youtube(m_request):
 
 @mock.patch("commands.requests.get")
 def test_waifu(m_request):
-    """ Test the waifu command """
+    """Test the waifu command"""
     user_msg = create_user_msg()
     for cmd in {"!w", "!waifu"}:
         # Test non-200 status code
@@ -143,7 +143,7 @@ def test_waifu(m_request):
 
 
 def test_nut():
-    """ Test the nut command """
+    """Test the nut command"""
     user_msg = create_user_msg()
     for cmd in {"!n", "!nut"}:
         _, msg = Command(user_msg).commands[cmd]()

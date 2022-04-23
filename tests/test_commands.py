@@ -12,23 +12,6 @@ from reminder import REMINDER_HELP_MSG
 from .utils import create_user_msg, create_mock_response
 
 
-@pytest.fixture(name="poll")
-def create_poll():
-    """ Create a poll object for testing """
-    time_length = TimeLength("years", 5)
-    kwargs = {
-        "time_length": time_length,
-        "choices": ["a", "b", "c"],
-        "votes": {"1": [], "2": [], "3": []},
-        "prompt": "foo",
-        "channel_id": "bar",
-    }
-    poll = Poll(**kwargs)
-    poll.save()
-    yield poll
-    poll.delete()
-
-
 def test_help():
     """ Test the help command """
     user_msg = create_user_msg()
@@ -38,76 +21,6 @@ def test_help():
         for key, value in MSG_DICT.items():
             assert key in msg
             assert value in msg
-
-
-def test_remind():
-    """ Test the remind command """
-    user_msg = create_user_msg()
-    # Test invalid reminder
-    for reminder in {"!r", "!remind"}:
-        # Test passing in no args or help command
-        _, msg = Command(user_msg).commands[reminder]()
-        assert msg == REMINDER_HELP_MSG
-        _, msg = Command(user_msg).commands[reminder]("help")
-        assert msg == REMINDER_HELP_MSG
-
-        # Test reminder error is raised
-        _, msg = Command(user_msg).commands[reminder]("set", "foo", "in", "five", "bar")
-        assert "Invalid unit bar" in msg
-
-        # Test create a normal reminder
-        _, msg = Command(user_msg).commands[reminder](
-            "set", "foo", "in", "5", "seconds"
-        )
-        assert ': "foo" at' in msg
-
-
-def test_vote(poll):
-    """ Test the vote command """
-    user_msg = create_user_msg()
-    for vote in {"!v", "!vote"}:
-        # Test invalid vote command
-        _, msg = Command(user_msg).commands[vote]()
-        assert "Please format your vote as" in msg
-
-        # Test poll not found
-        _, msg = Command(user_msg).commands[vote]("fake-id", 3)
-        assert "Poll fake-id does not exist or has expired" in msg
-
-        # Test invalid poll prints out exception message instead of letting exception bubble up
-        with mock.patch("poll.Poll.load") as m_load:
-            m_load.side_effect = ValueError("mock value error")
-            _, msg = Command(user_msg).commands[vote]("fake-id", 3)
-            assert "mock value error" in msg
-
-        # Test invalid vote choice
-        _, msg = Command(user_msg).commands[vote](poll.poll_id, 420)
-        assert "420 is not an available selection" in msg
-
-        # Test valid vote choice
-        _, msg = Command(user_msg).commands[vote](poll.poll_id, "2")
-        assert "You have selected" in msg
-
-
-def test_poll():
-    """ Test the poll command """
-    user_msg = create_user_msg()
-    for cmd in {"!p", "!poll"}:
-        # Test help queries
-        _, msg = Command(user_msg).commands[cmd]()
-        assert POLL_HELP_MSG in msg
-        _, msg = Command(user_msg).commands[cmd]("help")
-        assert POLL_HELP_MSG in msg
-
-        # Test invalid polls
-        user_msg = create_user_msg("foo ; bar ; ends in 4 blah")
-        _, msg = Command(user_msg).commands[cmd]("blah")
-        assert POLL_HELP_MSG in msg
-
-        # Test valid poll
-        user_msg = create_user_msg("foo ; bar ; ends in 4 hours")
-        _, msg = Command(user_msg).commands[cmd]("blah")
-        assert 'Type or DM me "!vote' in msg
 
 
 def test_jeopardy():

@@ -92,13 +92,3 @@ async def test_command_exception(m_help, m_msg, capfd):
     assert "foo" in output
     assert "Unexpected error with id" in output
     m_msg.channel.send.assert_called_once()
-
-
-async def test_on_read(m_client, capfd):
-    """ Test the on_read coroutine """
-    m_client.user = mock.AsyncMock()
-    m_client.change_presence = mock.AsyncMock()
-    await on_ready()
-    m_client.change_presence.assert_called_once()
-    m_client.loop.create_task.assert_called()
-    assert "Logged in as" in capfd.readouterr().out

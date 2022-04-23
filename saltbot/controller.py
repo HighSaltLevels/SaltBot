@@ -5,9 +5,8 @@ import traceback
 import discord
 
 from commands import Command
-from logger import Logger
+from common.logger import LOGGER
 
-LOGGER = Logger()
 CLIENT = discord.Client()
 
 

@@ -24,3 +24,6 @@ class Logger:
         """Clear the log file"""
         with open(self._logfile, "w"):
             pass
+
+
+LOGGER = Logger()

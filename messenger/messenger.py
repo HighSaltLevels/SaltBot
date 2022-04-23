@@ -2,6 +2,8 @@
 
 import json
 
+from common.logger import LOGGER
+
 
 class Messenger:
     """Messenger class"""
@@ -39,7 +41,7 @@ class Messenger:
         """Send the message to the channel or author"""
         channel = self._client.get_channel(int(spec["channel"]))
         if channel is None:
-            print("It's a DM, look up the channel")
+            LOGGER.log("It's a DM, look up the channel")
             for guild in self._client.guilds:
                 for member in guild.members:
                     if member.id == int(spec["author"]):

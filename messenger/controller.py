@@ -5,6 +5,7 @@ import time
 
 import discord
 
+from common.logger import LOGGER
 from common.k8s.configmap import ConfigMap
 from messenger import Messenger
 
@@ -22,7 +23,7 @@ class Controller:
 
     async def start(self):
         """Start waiting for polls/reminders to expire"""
-        print("Started up messenger to monitor for polls/reminders")
+        LOGGER.log("Started up messenger to monitor for polls/reminders")
         while True:
             self.get_all_config_maps()
             await self._check_expiry()
@@ -71,8 +72,8 @@ class Controller:
 @CLIENT.event
 async def on_ready():
     """Log in as the saltbot user"""
-    print("Logged in as")
-    print(CLIENT.user.name)
-    print(CLIENT.user.id)
+    LOGGER.log("Logged in as")
+    LOGGER.log(CLIENT.user.name)
+    LOGGER.log(CLIENT.user.id)
     controller = Controller(CLIENT)
     CLIENT.loop.create_task(controller.start())

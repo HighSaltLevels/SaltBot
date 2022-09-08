@@ -66,7 +66,9 @@ class Controller:
     @staticmethod
     def _delete_config_map(name):
         """Delete the poll config map"""
+        LOGGER.log(f"Deleting ConfigMap {name}")
         ConfigMap().delete(name)
+        LOGGER.log(f"Successfully deleted ConfigMap {name}")
 
 
 @CLIENT.event

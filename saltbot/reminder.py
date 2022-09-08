@@ -125,7 +125,7 @@ class Reminder:
     def _get_reminder_str(reminder):
         """Take the raw reminder response and convert it to human readable"""
         # ConfigMaps only store strings so we need to parse to int
-        dt_obj = datetime.fromtimestamp(int(reminder["timeout"]))
+        dt_obj = datetime.fromtimestamp(int(reminder["expiry"]))
         timezone = pytz.timezone("US/Eastern")
         timezone.localize(dt_obj)
 

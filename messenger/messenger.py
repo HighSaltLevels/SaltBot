@@ -39,6 +39,9 @@ class Messenger:
 
     async def send(self, msg, spec):
         """Send the message to the channel or author"""
+        LOGGER.log(
+            f"Attempting to send reminder {spec['unique_id']} to {spec['channel']}"
+        )
         channel = self._client.get_channel(int(spec["channel"]))
         if channel is None:
             LOGGER.log("It's a DM, look up the channel")

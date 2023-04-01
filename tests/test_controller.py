@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from controller import on_message, on_ready
+from controller import on_message
 
 pytestmark = pytest.mark.asyncio
 

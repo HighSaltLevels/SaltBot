@@ -3,12 +3,8 @@
 from unittest import mock
 
 import discord
-import pytest
 
 from commands import Command, MSG_DICT
-from poll import Poll, POLL_HELP_MSG
-from timelength import TimeLength
-from reminder import REMINDER_HELP_MSG
 from .utils import create_user_msg, create_mock_response
 
 

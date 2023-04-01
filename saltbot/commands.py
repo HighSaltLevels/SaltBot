@@ -332,9 +332,9 @@ class Command:
 
             resp = requests.get(url, stream=True)
             if resp.status_code == 200:
-                with open("temp.jpg", "wb") as stream:
+                with open("/tmp/temp.jpg", "wb") as stream:
                     stream.write(resp.content)
-                return "file", "temp.jpg"
+                return "file", "/tmp/temp.jpg"
 
         return "text", "```Sorry, I coudn't get that waifu :(```"
 

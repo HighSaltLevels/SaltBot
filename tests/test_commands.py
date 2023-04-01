@@ -3,12 +3,8 @@
 from unittest import mock
 
 import discord
-import pytest
 
 from commands import Command, MSG_DICT
-from poll import Poll, POLL_HELP_MSG
-from timelength import TimeLength
-from reminder import REMINDER_HELP_MSG
 from .utils import create_user_msg, create_mock_response
 
 
@@ -139,7 +135,7 @@ def test_waifu(m_request):
         m_request.return_value = create_mock_response(200, kind="youtube")
         kind, msg = Command(user_msg).commands[cmd]()
         assert kind == "file"
-        assert msg == "temp.jpg"
+        assert msg == "/tmp/temp.jpg"
 
 
 def test_nut():

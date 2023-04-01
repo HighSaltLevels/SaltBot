@@ -1,10 +1,6 @@
 """ TimeLength Test Module """
 
-import time
-
-import pytest
-
-from timelength import TimeLength, UNIT_DICT
+from timelength import TimeLength
 
 
 def test_different_ids():

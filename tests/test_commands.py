@@ -139,7 +139,7 @@ def test_waifu(m_request):
         m_request.return_value = create_mock_response(200, kind="youtube")
         kind, msg = Command(user_msg).commands[cmd]()
         assert kind == "file"
-        assert msg == "temp.jpg"
+        assert msg == "/tmp/temp.jpg"
 
 
 def test_nut():

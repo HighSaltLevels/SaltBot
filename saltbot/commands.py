@@ -30,7 +30,6 @@ MSG_DICT = {
         "Type !gif followed by keywords to get a cool gif. For example: !gif dog"
     ),
     "!waifu (!w)": "Get a picture of a personal waifu that's different each time",
-    "!nut (!n)": "Receive a funny nut 'n go line",
     "!poll (!p)": 'Type "!poll help" for detailed information',
     "!vote (!v)": 'Vote in a poll. Type "!vote <poll id> <poll choice>" to cast your vote',
     "!youtube (!y)": "Get a youtube search result. Use the '-i' parameter to specify an index",
@@ -77,8 +76,6 @@ class Command:
             "!pm": self.whisper,
             "!gif": self.gif,
             "!g": self.gif,
-            "!nut": self.nut,
-            "!n": self.nut,
             "!jeopardy": self.jeopardy,
             "!j": self.jeopardy,
             "!help": self.help,
@@ -337,15 +334,6 @@ class Command:
                 return "file", "/tmp/temp.jpg"
 
         return "text", "```Sorry, I coudn't get that waifu :(```"
-
-    def nut(self):
-        """Send a funny "nut" line"""
-        with open("nut.txt") as stream:
-            lines = stream.readlines()
-
-        rand = randint(0, len(lines) - 1)
-        return "text", f"```Remember {self._user}, don't {lines[rand]}```"
-
 
 def _remove_html_crap(text):
     """Strip out all poorly formatted html stuff"""

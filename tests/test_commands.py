@@ -136,12 +136,3 @@ def test_waifu(m_request):
         kind, msg = Command(user_msg).commands[cmd]()
         assert kind == "file"
         assert msg == "/tmp/temp.jpg"
-
-
-def test_nut():
-    """Test the nut command"""
-    user_msg = create_user_msg()
-    for cmd in {"!n", "!nut"}:
-        _, msg = Command(user_msg).commands[cmd]()
-        assert "Remember" in msg
-        assert ", don't " in msg

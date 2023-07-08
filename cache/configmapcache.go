@@ -23,8 +23,11 @@ import (
 
 const namespace = "saltbot"
 
+// TODO Use custom resources instead of configmaps
 type Poll struct {
+	Author  string              `json:"author"`
 	Channel string              `json:"channel"`
+	Prompt  string              `json:"prompt"`
 	Choices []string            `json:"choices"`
 	Expiry  int64               `json:"expiry"`
 	Id      string              `json:"unique_id"`
@@ -32,6 +35,7 @@ type Poll struct {
 }
 
 type Reminder struct {
+	Author  string `json:"author"`
 	Channel string `json:"channel"`
 	Expiry  int64  `json:"expiry"`
 	Message string `json:"msg"`
@@ -46,6 +50,8 @@ type ConfigMapCache struct {
 	stopCh    <-chan struct{}
 }
 
+// Only create a single instance of config map cache
+var Cache *ConfigMapCache
 var client *kubernetes.Clientset
 
 func init() {
@@ -57,6 +63,10 @@ func init() {
 	client, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatalf("failed to create k8s client: %v", err)
+	}
+
+	if Cache == nil {
+		Cache = newConfigMapCache()
 	}
 }
 
@@ -74,7 +84,7 @@ func getClientConfig() (config *rest.Config, err error) {
 	return config, err
 }
 
-func NewConfigMapCache() *ConfigMapCache {
+func newConfigMapCache() *ConfigMapCache {
 	var informer k8scache.SharedIndexInformer
 	c := ConfigMapCache{
 		informer:  informer,
@@ -189,11 +199,81 @@ func (c *ConfigMapCache) ListPolls() map[string]Poll {
 	return c.polls
 }
 
+func (c *ConfigMapCache) GetPoll(id, author string) *Poll {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var poll Poll
+	var ok bool
+	if poll, ok = c.polls[id]; !ok {
+		return nil
+	}
+
+	return &poll
+}
+
+// Add a poll configmap, this in turn triggers the informer handler which
+// adds it to the in-mem cache.
+func (c *ConfigMapCache) AddPoll(p *Poll) error {
+	cmClient := client.CoreV1().ConfigMaps(namespace)
+
+	configMap := pollToConfigMap(p)
+	_, err := cmClient.Create(context.TODO(), configMap, metav1.CreateOptions{})
+	return err
+}
+
+func (c *ConfigMapCache) UpdatePoll(p *Poll) error {
+	cmClient := client.CoreV1().ConfigMaps(namespace)
+
+	configMap := pollToConfigMap(p)
+	_, err := cmClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	return err
+}
+
 // Getter for reminders in the cache
 func (c *ConfigMapCache) ListReminders() map[string]Reminder {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	return c.reminders
+}
+
+func (c *ConfigMapCache) GetReminder(id, author string) *Reminder {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	var reminder Reminder
+	var ok bool
+	if reminder, ok = c.reminders[id]; !ok {
+		return nil
+	}
+
+	if reminder.Author != author {
+		return nil
+	}
+
+	return &reminder
+}
+
+// Add a reminder configmap, this in turn triggers the informer handler which
+// adds it to the in-mem cache.
+func (c *ConfigMapCache) AddReminder(r *Reminder, user string) error {
+	// First convert to a configmap, then use the client to create it
+	cmClient := client.CoreV1().ConfigMaps(namespace)
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "reminder-" + r.Id,
+			Labels: map[string]string{
+				"user": user,
+			},
+		},
+		Data: map[string]string{
+			"author":    r.Author,
+			"channel":   r.Channel,
+			"expiry":    fmt.Sprintf("%d", r.Expiry),
+			"msg":       r.Message,
+			"unique_id": r.Id,
+		},
+	}
+	_, err := cmClient.Create(context.TODO(), &configMap, metav1.CreateOptions{})
+	return err
 }
 
 /*
@@ -246,9 +326,42 @@ func parseReminder(configMap *corev1.ConfigMap) (*Reminder, error) {
 	}
 
 	return &Reminder{
+		Author:  configMap.Data["author"],
 		Channel: configMap.Data["channel"],
 		Expiry:  expiry,
 		Message: configMap.Data["msg"],
 		Id:      configMap.Data["unique_id"],
 	}, nil
+}
+
+func pollToConfigMap(p *Poll) *corev1.ConfigMap {
+	choices := "["
+	votes := "{"
+	for idx, choice := range p.Choices {
+		choices += fmt.Sprintf("\"%s\", ", choice)
+
+		votesForChoice := p.Votes[fmt.Sprintf("%d", idx)]
+		votes += fmt.Sprintf("\"%d\": [", idx)
+		for _, voteForChoice := range votesForChoice {
+			votes += fmt.Sprintf("\"%s\", ", voteForChoice)
+		}
+		votes = strings.TrimSuffix(votes, ", ") + "], "
+	}
+	choices = strings.TrimSuffix(choices, ", ") + "]"
+	votes = strings.TrimSuffix(votes, ", ") + "}"
+
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "poll-" + p.Id,
+		},
+		Data: map[string]string{
+			"author":    p.Author,
+			"channel":   p.Channel,
+			"expiry":    fmt.Sprintf("%d", p.Expiry),
+			"choices":   choices,
+			"votes":     votes,
+			"unique_id": p.Id,
+		},
+	}
+	return &configMap
 }

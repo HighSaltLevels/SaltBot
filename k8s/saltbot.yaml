@@ -63,36 +63,3 @@ spec:
         runAsUser: 69
         runAsGroup: 420
       serviceAccountName: saltbot
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: messenger
-  labels:
-    app: saltbot
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: saltbot
-  template:
-    metadata:
-      labels:
-        app: saltbot
-    spec:
-      containers:
-      - name: messenger
-        image: highsaltlevels/messenger:latest
-        env:
-        - name: PYTHONUNBUFFERED
-          value: "0"
-        - name: BOT_TOKEN
-          value: __BOT_TOKEN__
-        - name: GIPHY_AUTH
-          value: __GIPHY_AUTH__
-        - name: YOUTUBE_AUTH
-          value: __YOUTUBE_AUTH__
-      securityContext:
-        runAsUser: 69
-        runAsGroup: 420
-      serviceAccountName: saltbot

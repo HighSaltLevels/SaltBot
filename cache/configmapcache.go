@@ -1,11 +1,11 @@
 package cache
+/*
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,25 +14,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infcorev1 "k8s.io/client-go/informers/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	k8scache "k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
-
-const namespace = "saltbot"
-
-// TODO Use custom resources instead of configmaps
-type Poll struct {
-	Author  string              `json:"author"`
-	Channel string              `json:"channel"`
-	Prompt  string              `json:"prompt"`
-	Choices []string            `json:"choices"`
-	Expiry  int64               `json:"expiry"`
-	Id      string              `json:"unique_id"`
-	Votes   map[string][]string `json:"votes"`
-}
 
 type Reminder struct {
 	Author  string `json:"author"`
@@ -48,40 +31,6 @@ type ConfigMapCache struct {
 	reminders map[string]Reminder
 	lock      sync.Mutex
 	stopCh    <-chan struct{}
-}
-
-// Only create a single instance of config map cache
-var Cache *ConfigMapCache
-var client *kubernetes.Clientset
-
-func init() {
-	config, err := getClientConfig()
-	if err != nil {
-		log.Fatalf("failed to create k8s client config: %v", err)
-	}
-
-	client, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("failed to create k8s client: %v", err)
-	}
-
-	if Cache == nil {
-		Cache = newConfigMapCache()
-	}
-}
-
-func getClientConfig() (config *rest.Config, err error) {
-	// If we can't get the in-cluster config, try the ~/.kube/config
-	if config, err = rest.InClusterConfig(); err == nil {
-		return config, nil
-	}
-
-	log.Printf("failed to initialize k8s client config: %v", err)
-	log.Println("attempting to use ~/.kube/config")
-
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-	return config, err
 }
 
 func newConfigMapCache() *ConfigMapCache {
@@ -276,11 +225,6 @@ func (c *ConfigMapCache) AddReminder(r *Reminder, user string) error {
 	return err
 }
 
-/*
-Delete the configmap from the cluster which in turn triggers
-
-	the delete handler to remove it from the in-mem cache
-*/
 func (c *ConfigMapCache) Delete(name string) {
 	cmClient := client.CoreV1().ConfigMaps(namespace)
 	err := cmClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
@@ -365,3 +309,4 @@ func pollToConfigMap(p *Poll) *corev1.ConfigMap {
 	}
 	return &configMap
 }
+**/

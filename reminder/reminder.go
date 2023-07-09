@@ -1,5 +1,6 @@
 package reminder
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -105,3 +106,4 @@ func Handle(m *discordgo.MessageCreate) (*discordgo.MessageSend, error) {
 		Content: helpMessage,
 	}, nil
 }
+*/

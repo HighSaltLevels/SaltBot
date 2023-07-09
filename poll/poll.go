@@ -1,4 +1,5 @@
 package poll
+/*
 
 import (
 	"fmt"
@@ -155,3 +156,4 @@ func Vote(m *discordgo.MessageCreate) (*discordgo.MessageSend, error) {
 		Content: fmt.Sprintf("```You have voted for %s```", poll.Choices[choiceNum-1]),
 	}, nil
 }
+*/

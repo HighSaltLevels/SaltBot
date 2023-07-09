@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+//	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -11,7 +11,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/highsaltlevels/saltbot/cache"
-	"github.com/highsaltlevels/saltbot/expirychecker"
+//	"github.com/highsaltlevels/saltbot/expirychecker"
 	"github.com/highsaltlevels/saltbot/handler"
 )
 
@@ -29,26 +29,28 @@ func main() {
 	var err error
 	time.Local, err = time.LoadLocation("US/Eastern")
 	if err != nil {
-		log.Fatalf("failed to load locale: %w", err)
+		log.Fatalf("failed to load locale: %v", err)
 	}
 
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
-		log.Fatalf("failed to initialize saltbot: %w", err)
+		log.Fatalf("failed to initialize saltbot: %v", err)
 	}
 
 	err = session.Open()
 	if err != nil {
-		log.Fatalf("failed to open discord socket: %w", err)
+		log.Fatalf("failed to open discord socket: %v", err)
 	}
 	defer session.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	_ = cache.Poll{}
 
-	log.Println("initializing messenger")
-	checker := expirychecker.NewPoller(session, cache.Cache, ctx)
-	go checker.Loop()
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+
+//	log.Println("initializing messenger")
+//	checker := expirychecker.NewPoller(session, cache.Cache, ctx)
+//	go checker.Loop()
 
 	log.Println("registering message handlers")
 	session.AddHandler(handler.OnMessageCreate)

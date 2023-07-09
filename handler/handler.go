@@ -11,8 +11,8 @@ import (
 
 	"github.com/highsaltlevels/saltbot/giphy"
 	"github.com/highsaltlevels/saltbot/jeopardy"
-	"github.com/highsaltlevels/saltbot/poll"
-	"github.com/highsaltlevels/saltbot/reminder"
+//	"github.com/highsaltlevels/saltbot/poll"
+//	"github.com/highsaltlevels/saltbot/reminder"
 	"github.com/highsaltlevels/saltbot/youtube"
 )
 
@@ -114,6 +114,7 @@ func OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		message, err = youtube.Get(m.Content)
 	case "!y":
 		message, err = youtube.Get(m.Content)
+	/*
 	case "!remind":
 		message, err = reminder.Handle(m)
 	case "!r":
@@ -126,6 +127,7 @@ func OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		message, err = poll.Vote(m)
 	case "!v":
 		message, err = poll.Vote(m)
+	*/
 	// If saltbot doesn't know the command, do nothing
 	default:
 		return

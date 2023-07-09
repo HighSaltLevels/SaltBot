@@ -1,5 +1,6 @@
 package expirychecker
 
+/*
 import (
 	"context"
 	"fmt"
@@ -112,3 +113,4 @@ func (p *Poller) sendMessage(channel string, msg string) error {
 	_, err := p.session.ChannelMessageSend(channel, msg)
 	return err
 }
+*/

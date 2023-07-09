@@ -1,0 +1,35 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: reminders.saltbot.greeson.xyz
+spec:
+  group: saltbot.greeson.xyz
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              id:
+                type: string
+              author:
+                type: string
+              channel:
+                type: string
+              expiry:
+                type: integer
+                format: int64
+              message:
+                type: string
+  scope: Namespaced
+  names:
+    plural: reminders
+    singular: reminder
+    kind: Reminder
+    shortNames:
+    - rem

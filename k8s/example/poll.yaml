@@ -1,0 +1,21 @@
+apiVersion: "saltbot.greeson.xyz/v1"
+kind: Poll
+metadata:
+  name: test
+spec:
+  id: "1"
+  author: "11111"
+  channel: "22222"
+  prompt: "some kind of prompt"
+  choices:
+  - "choice 1"
+  - "choice 2"
+  expiry: 12341234
+  votes:
+  - choice: "choice 1"
+    choosers:
+    - person 1
+    - person 2
+  - choice: "choice 2"
+    choosers:
+    - person 3

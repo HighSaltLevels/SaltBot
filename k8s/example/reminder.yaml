@@ -1,0 +1,10 @@
+apiVersion: "saltbot.greeson.xyz/v1"
+kind: Reminder
+metadata:
+  name: test
+spec:
+  id: "1"
+  author: "11111"
+  channel: "22222"
+  expiry: 12341234
+  message: "foo"

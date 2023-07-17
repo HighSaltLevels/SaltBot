@@ -2,10 +2,16 @@ package util
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// Client interface for testing of 3rd party web services like youtube, giphy, jeopardy, etc...
+type HttpClientInterface interface {
+	Get(string) (*http.Response, error)
+}
 
 var unitDict map[string]int = map[string]int{
 	"year":    31536000,

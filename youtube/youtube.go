@@ -16,6 +16,7 @@ import (
 )
 
 var token string
+var client util.HttpClientInterface
 
 type YoutubeId struct {
 	VideoId string `json:"videoId"`
@@ -32,13 +33,18 @@ type YoutubeResponse struct {
 func init() {
 	var ok bool
 	if token, ok = os.LookupEnv("YOUTUBE_AUTH"); !ok {
-		log.Fatal("failed to get youtube auth from env var")
+		log.Println("failed to get youtube auth from env var")
+		log.Println("continuing saltbot startup with partial functionality")
+	}
+
+	if client == nil {
+		client = &http.Client{}
 	}
 }
 
 func getYoutubeVideo(query string, idx int) (string, error) {
 	url := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?key=%s&q=%s&maxResult=15&type=video", token, query)
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("failed to get youtube video: %w", err)
 	}
@@ -56,7 +62,11 @@ func getYoutubeVideo(query string, idx int) (string, error) {
 	var yt YoutubeResponse
 	err = json.Unmarshal(body, &yt)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal giphy response: %w", err)
+		return "", fmt.Errorf("failed to unmarshal youtube response: %w", err)
+	}
+
+	if len(yt.Items) < 1 {
+		return "```No videos for that query :(```", nil
 	}
 
 	return "https://www.youtube.com/watch?v=" + yt.Items[idx].Id.VideoId, nil

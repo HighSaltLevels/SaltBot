@@ -22,7 +22,7 @@ const helpMessage string = ("```How to set a poll:\n" +
 	"second)```")
 
 const voteHelpMessage string = ("```To vote on a poll, use \"!vote <poll id> " +
-	"<choice num>\". For example: \"!vote dd32251a 1\"'''")
+	"<choice num>\". For example: \"!vote dd32251a 1\"```")
 
 func parsePoll(args []string, m *discordgo.MessageCreate) (*cache.Poll, error) {
 	prompt := strings.Replace(strings.Replace(args[0], "!poll", "", 1), "!p", "", 1)

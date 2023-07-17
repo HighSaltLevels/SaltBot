@@ -29,17 +29,17 @@ func main() {
 	var err error
 	time.Local, err = time.LoadLocation("US/Eastern")
 	if err != nil {
-		log.Fatalf("failed to load locale: %w", err)
+		log.Fatalf("failed to load locale: %v", err)
 	}
 
 	session, err := discordgo.New("Bot " + token)
 	if err != nil {
-		log.Fatalf("failed to initialize saltbot: %w", err)
+		log.Fatalf("failed to initialize saltbot: %v", err)
 	}
 
 	err = session.Open()
 	if err != nil {
-		log.Fatalf("failed to open discord socket: %w", err)
+		log.Fatalf("failed to open discord socket: %v", err)
 	}
 	defer session.Close()
 

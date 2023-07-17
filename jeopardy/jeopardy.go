@@ -8,7 +8,11 @@ import (
 	"net/http"
 
 	"github.com/bwmarrin/discordgo"
+
+	"github.com/highsaltlevels/saltbot/util"
 )
+
+var client util.HttpClientInterface
 
 type Clue struct {
 	Question string `json:"question"`
@@ -20,11 +24,17 @@ type JeopardyResponse struct {
 	Clues []Clue `json:"clues"`
 }
 
+func init() {
+	if client == nil {
+		client = &http.Client{}
+	}
+}
+
 func Get() (*discordgo.MessageSend, error) {
 	num := rand.Intn(18417)
 	url := fmt.Sprintf("http://jservice.io/api/category?id=%d", num)
 
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting jeopardy questions: %v", err)
 	}

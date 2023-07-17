@@ -9,13 +9,13 @@ import (
 )
 
 type Poll struct {
-	Author  string              `json:"author"`
-	Channel string              `json:"channel"`
-	Prompt  string              `json:"prompt"`
-	Choices []string            `json:"choices"`
-	Expiry  int64               `json:"expiry"`
-	Id      string              `json:"id"`
-	Votes   map[string][]string `json:"votes"`
+	Author  string                   `json:"author"`
+	Channel string                   `json:"channel"`
+	Prompt  string                   `json:"prompt"`
+	Choices []string                 `json:"choices"`
+	Expiry  int64                    `json:"expiry"`
+	Id      string                   `json:"id"`
+	Votes   map[string][]interface{} `json:"votes"`
 }
 
 func (p *Poll) FromConfigMap(configMap *corev1.ConfigMap) error {

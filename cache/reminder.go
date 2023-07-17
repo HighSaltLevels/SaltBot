@@ -9,11 +9,11 @@ import (
 )
 
 type Reminder struct {
-	Author  string `json:"author"`
-	Channel string `json:"channel"`
-	Expiry  int64  `json:"expiry"`
-	Message string `json:"msg"`
-	Id      string `json:"id"`
+	Author  string      `json:"author"`
+	Channel string      `json:"channel"`
+	Expiry  int64       `json:"expiry"`
+	Message interface{} `json:"msg"`
+	Id      string      `json:"id"`
 }
 
 func (r *Reminder) FromConfigMap(configMap *corev1.ConfigMap) error {

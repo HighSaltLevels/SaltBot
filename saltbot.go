@@ -43,11 +43,14 @@ func main() {
 	}
 	defer session.Close()
 
+	log.Println("initializing poll/reminder cache")
+	cache.NewConfigMapCache()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	log.Println("initializing messenger")
-	checker := expirychecker.NewPoller(session, cache.Cache, ctx)
+	checker := expirychecker.NewPoller(session, ctx)
 	go checker.Loop()
 
 	log.Println("registering message handlers")

@@ -25,29 +25,13 @@ type ConfigMapCache struct {
 	informer  k8scache.SharedIndexInformer
 	polls     map[string]Poll
 	reminders map[string]Reminder
-	lock      sync.Mutex
 	stopCh    <-chan struct{}
 }
 
 // Only create a single instance of config map cache
 var Cache *ConfigMapCache
-var client *kubernetes.Clientset
-
-func init() {
-	config, err := getClientConfig()
-	if err != nil {
-		log.Fatalf("failed to create k8s client config: %v", err)
-	}
-
-	client, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("failed to create k8s client: %v", err)
-	}
-
-	if Cache == nil {
-		Cache = newConfigMapCache()
-	}
-}
+var Client kubernetes.Interface
+var lock sync.Mutex = sync.Mutex{}
 
 func getClientConfig() (config *rest.Config, err error) {
 	// If we can't get the in-cluster config, try the ~/.kube/config
@@ -63,33 +47,55 @@ func getClientConfig() (config *rest.Config, err error) {
 	return config, err
 }
 
-func newConfigMapCache() *ConfigMapCache {
-	var informer k8scache.SharedIndexInformer
-	c := ConfigMapCache{
-		informer:  informer,
-		polls:     make(map[string]Poll, 1),
-		reminders: make(map[string]Reminder, 1),
+// Create a configmap cache backed by k8s.
+func NewConfigMapCache() *ConfigMapCache {
+	if Cache == nil || Client == nil {
+		config, err := getClientConfig()
+		if err != nil {
+			log.Fatalf("failed to create k8s client config: %v", err)
+		}
+
+		Client, err = kubernetes.NewForConfig(config)
+		if err != nil {
+			log.Fatalf("failed to create k8s client: %v", err)
+		}
+
+		var informer k8scache.SharedIndexInformer
+		Cache = &ConfigMapCache{
+			informer:  informer,
+			polls:     make(map[string]Poll, 1),
+			reminders: make(map[string]Reminder, 1),
+			stopCh:    make(chan struct{}),
+		}
+
+		informer = infcorev1.NewConfigMapInformer(Client, namespace, time.Hour*24, nil)
+		_, err = informer.AddEventHandler(
+			k8scache.ResourceEventHandlerFuncs{
+				AddFunc:    Cache.addConfigMap,
+				UpdateFunc: Cache.updateConfigMap,
+				DeleteFunc: Cache.deleteConfigMap,
+			},
+		)
+		if err != nil {
+			log.Fatalf("failed to create informer handler: %v", err)
+		}
+
+		log.Println("starting informer and waiting for it to sync")
+		go informer.Run(Cache.stopCh)
+		k8scache.WaitForCacheSync(Cache.stopCh, informer.HasSynced)
+		log.Println("informer cache has synced")
+	}
+
+	return Cache
+}
+
+// Create a configmap cache that is in-memory. Cache is lost if application closes.
+func NewInMemConfigMapCache(polls map[string]Poll, reminders map[string]Reminder) *ConfigMapCache {
+	return &ConfigMapCache{
+		polls:     polls,
+		reminders: reminders,
 		stopCh:    make(chan struct{}),
 	}
-
-	informer = infcorev1.NewConfigMapInformer(client, namespace, time.Hour*24, nil)
-	_, err := informer.AddEventHandler(
-		k8scache.ResourceEventHandlerFuncs{
-			AddFunc:    c.addConfigMap,
-			UpdateFunc: c.updateConfigMap,
-			DeleteFunc: c.deleteConfigMap,
-		},
-	)
-	if err != nil {
-		log.Fatalf("failed to create informer handler: %v", err)
-	}
-
-	log.Println("starting informer and waiting for it to sync")
-	go informer.Run(c.stopCh)
-	k8scache.WaitForCacheSync(c.stopCh, informer.HasSynced)
-	log.Println("informer cache has synced")
-
-	return &c
 }
 
 // Add handler for the configmap informer
@@ -97,8 +103,8 @@ func (c *ConfigMapCache) addConfigMap(obj interface{}) {
 	configMap := obj.(*corev1.ConfigMap)
 	name := configMap.ObjectMeta.Name
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 
 	if strings.Contains(name, "poll") {
 		p := Poll{}
@@ -129,8 +135,8 @@ func (c *ConfigMapCache) updateConfigMap(oldObj interface{}, newObj interface{})
 	configMap := newObj.(*corev1.ConfigMap)
 	name := configMap.ObjectMeta.Name
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 
 	if strings.Contains(name, "poll") {
 		p := Poll{}
@@ -164,8 +170,8 @@ func (c *ConfigMapCache) deleteConfigMap(obj interface{}) {
 		return
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 
 	if nameParts[0] == "poll" {
 		delete(c.polls, nameParts[1])
@@ -178,14 +184,14 @@ func (c *ConfigMapCache) deleteConfigMap(obj interface{}) {
 
 // Getter for polls in the cache
 func (c *ConfigMapCache) ListPolls() map[string]Poll {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	return c.polls
 }
 
 func (c *ConfigMapCache) GetPoll(id, author string) *Poll {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	var poll Poll
 	var ok bool
 	if poll, ok = c.polls[id]; !ok {
@@ -198,7 +204,7 @@ func (c *ConfigMapCache) GetPoll(id, author string) *Poll {
 // Add a poll configmap, this in turn triggers the informer handler which
 // adds it to the in-mem cache.
 func (c *ConfigMapCache) AddPoll(p *Poll) error {
-	cmClient := client.CoreV1().ConfigMaps(namespace)
+	cmClient := Client.CoreV1().ConfigMaps(namespace)
 
 	configMap, err := p.ToConfigMap()
 	if err != nil {
@@ -210,7 +216,7 @@ func (c *ConfigMapCache) AddPoll(p *Poll) error {
 }
 
 func (c *ConfigMapCache) UpdatePoll(p *Poll) error {
-	cmClient := client.CoreV1().ConfigMaps(namespace)
+	cmClient := Client.CoreV1().ConfigMaps(namespace)
 
 	configMap, err := p.ToConfigMap()
 	if err != nil {
@@ -223,14 +229,14 @@ func (c *ConfigMapCache) UpdatePoll(p *Poll) error {
 
 // Getter for reminders in the cache
 func (c *ConfigMapCache) ListReminders() map[string]Reminder {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	return c.reminders
 }
 
 func (c *ConfigMapCache) GetReminder(id, author string) *Reminder {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	var reminder Reminder
 	var ok bool
 	if reminder, ok = c.reminders[id]; !ok {
@@ -247,7 +253,7 @@ func (c *ConfigMapCache) GetReminder(id, author string) *Reminder {
 // Add a reminder configmap, this in turn triggers the informer handler which
 // adds it to the in-mem cache.
 func (c *ConfigMapCache) AddReminder(r *Reminder, user string) error {
-	cmClient := client.CoreV1().ConfigMaps(namespace)
+	cmClient := Client.CoreV1().ConfigMaps(namespace)
 	configMap, err := r.ToConfigMap()
 	if err != nil {
 		return fmt.Errorf("failed to convert reminder to configMap: %v", err)
@@ -263,7 +269,7 @@ Delete the configmap from the cluster which in turn triggers
 	the delete handler to remove it from the in-mem cache
 */
 func (c *ConfigMapCache) Delete(name string) {
-	cmClient := client.CoreV1().ConfigMaps(namespace)
+	cmClient := Client.CoreV1().ConfigMaps(namespace)
 	err := cmClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		log.Printf("warning: failed to delete configmap: %v\n", err)

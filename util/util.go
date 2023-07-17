@@ -76,13 +76,3 @@ func TimeFromExpiry(expiry int64) string {
 	expiryTime := time.Unix(expiry, 0)
 	return expiryTime.Format(time.RFC1123)
 }
-
-func Contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
-}

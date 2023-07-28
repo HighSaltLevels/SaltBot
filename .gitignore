@@ -1,2 +1,5 @@
 # Use this to set the auth env vars.
 auth.env
+
+# Ignore coverage report
+coverage.out

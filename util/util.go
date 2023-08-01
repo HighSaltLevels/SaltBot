@@ -2,10 +2,16 @@ package util
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// Client interface for testing of 3rd party web services like youtube, giphy, jeopardy, etc...
+type HttpClientInterface interface {
+	Get(string) (*http.Response, error)
+}
 
 var unitDict map[string]int = map[string]int{
 	"year":    31536000,
@@ -69,14 +75,4 @@ func ParseExpiry(unit, duration string) (int64, error) {
 func TimeFromExpiry(expiry int64) string {
 	expiryTime := time.Unix(expiry, 0)
 	return expiryTime.Format(time.RFC1123)
-}
-
-func Contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
 }

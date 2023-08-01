@@ -8,19 +8,21 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/highsaltlevels/saltbot/cache"
+	c "github.com/highsaltlevels/saltbot/cache"
 )
 
+type SessionInterface interface {
+	ChannelMessageSend(channelID string, content string, options ...discordgo.RequestOption) (*discordgo.Message, error)
+}
+
 type Poller struct {
-	session *discordgo.Session
-	cache   *cache.ConfigMapCache
+	session SessionInterface
 	ctx     context.Context
 }
 
-func NewPoller(s *discordgo.Session, c *cache.ConfigMapCache, ctx context.Context) *Poller {
+func NewPoller(s SessionInterface, ctx context.Context) *Poller {
 	return &Poller{
 		session: s,
-		cache:   c,
 		ctx:     ctx,
 	}
 }
@@ -41,7 +43,7 @@ func (p *Poller) Loop() {
 					log.Printf("error sending poll: %v\n", err)
 					log.Printf("will retry again on the next iteration")
 				} else {
-					p.cache.Delete(fmt.Sprintf("poll-%s", poll.Id))
+					c.Cache.Delete(fmt.Sprintf("poll-%s", poll.Id))
 				}
 			}
 
@@ -52,22 +54,22 @@ func (p *Poller) Loop() {
 					log.Printf("error sending reminder: %v\n", err)
 					log.Printf("will retry again on the next iteration")
 				} else {
-					p.cache.Delete(fmt.Sprintf("reminder-%s", reminder.Id))
+					c.Cache.Delete(fmt.Sprintf("reminder-%s", reminder.Id))
 				}
 			}
 		}
 	}
 }
 
-func (p *Poller) getExpired() (polls []cache.Poll, reminders []cache.Reminder) {
-	for _, poll := range p.cache.ListPolls() {
+func (p *Poller) getExpired() (polls []c.Poll, reminders []c.Reminder) {
+	for _, poll := range c.Cache.ListPolls() {
 		expiry := time.Unix(poll.Expiry, 0)
 		if time.Now().Sub(expiry) >= 0.0 {
 			polls = append(polls, poll)
 		}
 	}
 
-	for _, reminder := range p.cache.ListReminders() {
+	for _, reminder := range c.Cache.ListReminders() {
 		expiry := time.Unix(reminder.Expiry, 0)
 		if time.Now().Sub(expiry) >= 0.0 {
 			reminders = append(reminders, reminder)
@@ -77,7 +79,7 @@ func (p *Poller) getExpired() (polls []cache.Poll, reminders []cache.Reminder) {
 	return polls, reminders
 }
 
-func (p *Poller) sendPoll(poll *cache.Poll) error {
+func (p *Poller) sendPoll(poll *c.Poll) error {
 	var msg string
 	totalVotes := 0
 	results := make([]int, len(poll.Choices))
@@ -90,7 +92,7 @@ func (p *Poller) sendPoll(poll *cache.Poll) error {
 	if totalVotes == 0 {
 		msg = "```No one voted on this poll :("
 	} else {
-		msg = fmt.Sprintf("```Results (Total votes: %d):\n\n", totalVotes)
+		msg = fmt.Sprintf("```Results for prompt \"%s\" (Total votes: %d):\n\n", poll.Prompt, totalVotes)
 		for idx := range results {
 			choice := poll.Choices[idx]
 			votesForChoice := len(poll.Votes[strconv.Itoa(idx)])
@@ -103,7 +105,7 @@ func (p *Poller) sendPoll(poll *cache.Poll) error {
 	return p.sendMessage(poll.Channel, fmt.Sprintf("%s```", msg))
 }
 
-func (p *Poller) sendReminder(r *cache.Reminder) error {
+func (p *Poller) sendReminder(r *c.Reminder) error {
 	msg := fmt.Sprintf("```%s```", r.Message)
 	return p.sendMessage(r.Channel, msg)
 }

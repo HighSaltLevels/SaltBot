@@ -16,6 +16,7 @@ import (
 )
 
 var token string
+var client util.HttpClientInterface
 
 type GiphyData struct {
 	// We only care about the bitly_gif_url
@@ -29,13 +30,18 @@ type GiphyResponse struct {
 func init() {
 	var ok bool
 	if token, ok = os.LookupEnv("GIPHY_AUTH"); !ok {
-		log.Fatal("failed to get giphy auth from env var")
+		log.Println("failed to get giphy auth from env var")
+		log.Println("continuing saltbot startup with partial functionality")
+	}
+
+	if client == nil {
+		client = &http.Client{}
 	}
 }
 
 func fetchGif(query string) (*GiphyResponse, error) {
 	url := fmt.Sprintf("http://api.giphy.com/v1/gifs/search?q=%s&api_key=%s", query, token)
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get giphy gif: %w", err)
 	}
@@ -47,7 +53,7 @@ func fetchGif(query string) (*GiphyResponse, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read giphy resp: %w", err)
+		return nil, fmt.Errorf("failed to read giphy response: %w", err)
 	}
 
 	var gif GiphyResponse

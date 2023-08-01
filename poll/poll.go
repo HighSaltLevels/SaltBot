@@ -22,7 +22,7 @@ const helpMessage string = ("```How to set a poll:\n" +
 	"second)```")
 
 const voteHelpMessage string = ("```To vote on a poll, use \"!vote <poll id> " +
-	"<choice num>\". For example: \"!vote dd32251a 1\"'''")
+	"<choice num>\". For example: \"!vote dd32251a 1\"```")
 
 func parsePoll(args []string, m *discordgo.MessageCreate) (*cache.Poll, error) {
 	prompt := strings.Replace(strings.Replace(args[0], "!poll", "", 1), "!p", "", 1)
@@ -47,7 +47,7 @@ func parsePoll(args []string, m *discordgo.MessageCreate) (*cache.Poll, error) {
 		Choices: choices,
 		Expiry:  expiry,
 		Id:      id,
-		Votes:   map[string][]string{},
+		Votes:   map[string][]interface{}{},
 	}, nil
 }
 
@@ -91,7 +91,7 @@ func Create(m *discordgo.MessageCreate) (*discordgo.MessageSend, error) {
 	for idx, choice := range poll.Choices {
 		msg += fmt.Sprintf("%d. %s\n", idx+1, choice)
 	}
-	msg += fmt.Sprintf("Type of DM me \"!vote %s <choice number>\" to vote```", poll.Id)
+	msg += fmt.Sprintf("Type or DM me \"!vote %s <choice number>\" to vote```", poll.Id)
 
 	return &discordgo.MessageSend{
 		Content: msg,
@@ -127,11 +127,15 @@ func Vote(m *discordgo.MessageCreate) (*discordgo.MessageSend, error) {
 	}
 
 	// Strip the users current vote so that they can't double vote.
-	votes := make(map[string][]string, len(poll.Votes))
-	for vote, _ := range poll.Votes {
-		if !util.Contains(poll.Votes[vote], m.Author.Username) {
-			votes[vote] = poll.Votes[vote]
+	votes := make(map[string][]interface{}, len(poll.Votes))
+	for choiceNum, choosers := range poll.Votes {
+		updatedChoosers := []interface{}{}
+		for _, chooser := range choosers {
+			if chooser != m.Author.Username {
+				updatedChoosers = append(updatedChoosers, chooser)
+			}
 		}
+		votes[choiceNum] = updatedChoosers
 	}
 
 	choiceStr := fmt.Sprintf("%d", choiceNum-1)
